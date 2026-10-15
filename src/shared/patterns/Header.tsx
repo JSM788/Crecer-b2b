@@ -78,15 +78,15 @@ export const Header: React.FC<HeaderProps> = ({
               onClick={() => setShowUserMenu(!showUserMenu)}
               className="flex items-center gap-2 p-1 rounded-md hover:bg-zinc-50 transition-colors text-left"
             >
-              <div className="w-8 h-8 rounded-full bg-zinc-200 text-zinc-600 flex items-center justify-center text-xs font-bold">
-                JP
+              <div className="w-8 h-8 rounded-full bg-zinc-200 text-zinc-700 flex items-center justify-center text-xs font-bold">
+                {user?.initials || (user?.name ? user.name.split(" ").map(n => n[0]).join("").slice(0, 2) : "JG")}
               </div>
               <div className="hidden sm:block leading-tight">
                 <p className="text-xs font-semibold text-zinc-900">
-                  {user?.name || "Juan Pérez"}
+                  {user?.name || "Juan García"}
                 </p>
                 <p className="text-2xs text-zinc-400 font-normal">
-                  {user?.role || "Comercial"}
+                  {user?.role || "Gerencia"}
                 </p>
               </div>
             </button>
