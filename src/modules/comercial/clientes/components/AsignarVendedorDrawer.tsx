@@ -30,8 +30,8 @@ export const AsignarVendedorDrawer: React.FC<AsignarVendedorDrawerProps> = ({
       onClose={onClose}
       title="Asignar vendedor"
       footer={
-        <div className="flex items-center justify-end gap-3 w-full">
-          <Button variant="secondary" onClick={onClose} className="px-5">
+        <div className="grid grid-cols-2 gap-3 w-full">
+          <Button variant="secondary" onClick={onClose} className="w-full">
             Cancelar
           </Button>
           <Button
@@ -39,7 +39,7 @@ export const AsignarVendedorDrawer: React.FC<AsignarVendedorDrawerProps> = ({
               onConfirm(selectedSeller);
               onClose();
             }}
-            className="px-5"
+            className="w-full bg-[#27272a] hover:bg-zinc-800 text-white font-medium"
           >
             Confirmar
           </Button>
@@ -51,11 +51,11 @@ export const AsignarVendedorDrawer: React.FC<AsignarVendedorDrawerProps> = ({
           <label className="block text-xs font-medium text-zinc-500 mb-1.5">
             Cliente seleccionado
           </label>
-          <div className="p-3 bg-zinc-50 border border-zinc-200 rounded-lg">
+          <div className="p-3.5 bg-zinc-50 border border-zinc-200/80 rounded-lg">
             <p className="text-sm font-semibold text-zinc-900">
               {primaryClient ? primaryClient.name : "Varios clientes seleccionados"}
             </p>
-            <p className="text-xs text-zinc-500 mt-0.5">
+            <p className="text-xs text-zinc-400 mt-0.5">
               {primaryClient
                 ? `${primaryClient.code} · ${primaryClient.district}`
                 : `${selectedClientes.length} clientes en lista`}

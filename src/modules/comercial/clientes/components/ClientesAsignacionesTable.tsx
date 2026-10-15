@@ -163,20 +163,21 @@ export const ClientesAsignacionesTable: React.FC<ClientesAsignacionesTableProps>
         entityName="clientes"
       />
 
-      {/* Floating Bottom Action Bar for Bulk Assignment */}
+      {/* Floating Bottom Action Bar for Bulk Assignment matching Clientes-Asignacion-2.png */}
       {selectedIds.length > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-[#27272a] text-white px-5 py-2.5 rounded-full shadow-2xl flex items-center gap-6 border border-zinc-700/60">
-          <div className="flex items-center gap-2 text-xs font-medium">
-            <CheckSquare className="h-4 w-4 text-emerald-400" />
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-white border border-zinc-200/90 shadow-xl rounded-xl px-4 py-2.5 flex items-center justify-between gap-8 min-w-[340px] sm:min-w-[420px]">
+          <div className="flex items-center gap-2.5 text-xs font-semibold text-zinc-900">
+            <div className="w-4 h-4 rounded bg-[#27272a] text-white flex items-center justify-center text-[10px] font-bold">
+              ✓
+            </div>
             <span>
               {selectedIds.length} {selectedIds.length === 1 ? "cliente seleccionado" : "clientes seleccionados"}
             </span>
           </div>
           <Button
             size="sm"
-            variant="secondary"
             onClick={() => setIsAsignarOpen(true)}
-            className="text-xs font-semibold h-7 bg-white text-zinc-900 hover:bg-zinc-100"
+            className="text-xs font-semibold h-8 bg-[#27272a] hover:bg-zinc-800 text-white px-4 rounded-lg"
           >
             Asignar vendedor
           </Button>
