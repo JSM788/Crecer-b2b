@@ -4,14 +4,31 @@
 
 :root {
   --background: #f8fafc;
-  --foreground: #0f172a;
-  --border: #e2e8f0;
+  --foreground: #18181b;
+  --border: #e4e4e7;
   --sidebar: #ffffff;
-  --sidebar-foreground: #475569;
-  --sidebar-active: #f1f5f9;
+  --sidebar-foreground: #52525b;
+  --sidebar-active: #f4f4f5;
   --card: #ffffff;
-  --card-foreground: #0f172a;
+  --card-foreground: #18181b;
   --radius: 0.5rem;
+}
+
+/* Proportional root scaling for laptops, 1080p and large monitors */
+html {
+  font-size: 14px;
+}
+
+@media (min-width: 1440px) {
+  html {
+    font-size: 14.5px;
+  }
+}
+
+@media (min-width: 1920px) {
+  html {
+    font-size: 15.5px;
+  }
 }
 
 body {
@@ -22,7 +39,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom scrollbar for dense tables and side panels */
+/* Custom scrollbar for tables and drawers */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -31,9 +48,9 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #d4d4d8;
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #a1a1aa;
 }

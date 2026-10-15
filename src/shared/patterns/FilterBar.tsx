@@ -29,13 +29,13 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   return (
     <div
       className={cn(
-        "flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 py-2",
+        "flex flex-col sm:flex-row items-stretch sm:items-end justify-between gap-3 py-2",
         className
       )}
     >
-      <div className="flex flex-wrap items-center gap-2.5 flex-1">
-        {/* Search input */}
-        <div className="relative min-w-[240px] max-w-sm flex-1">
+      <div className="flex flex-wrap items-end gap-3 flex-1">
+        {/* Search input with fixed 36px height matching select */}
+        <div className="relative min-w-[260px] max-w-sm flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
           <input
             type="text"
@@ -56,7 +56,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             variant="secondary"
             size="sm"
             onClick={onToggleMoreFilters}
-            className="text-xs h-9"
+            className="text-xs h-9 px-3 gap-1.5 shrink-0"
           >
             <Filter className="h-3.5 w-3.5 text-zinc-500" />
             Más filtros
@@ -64,7 +64,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
         )}
       </div>
 
-      {rightActions && <div className="flex items-center gap-2">{rightActions}</div>}
+      {rightActions && <div className="flex items-center gap-2 self-end">{rightActions}</div>}
     </div>
   );
 };

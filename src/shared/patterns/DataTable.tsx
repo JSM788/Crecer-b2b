@@ -11,6 +11,7 @@ export interface Column<T> {
   sortable?: boolean;
   className?: string;
   headerClassName?: string;
+  width?: string;
 }
 
 export interface DataTableProps<T> {
@@ -51,25 +52,28 @@ export function DataTable<T>({
   const totalPages = Math.ceil(count / pageSize) || 1;
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
+      {/* Table Frame */}
       <div className="overflow-x-auto rounded-lg border border-zinc-200 bg-white shadow-xs">
-        <table className="w-full text-left text-xs text-zinc-600">
-          <thead className="bg-zinc-50/80 border-b border-zinc-200 text-zinc-700 font-semibold select-none">
-            <tr>
+        <table className="w-full text-left text-xs border-collapse">
+          {/* Calibrated header: intermediate clean neutral gray with subtle column borders */}
+          <thead className="bg-[#f4f4f5] border-b border-zinc-200 text-zinc-700 font-semibold select-none">
+            <tr className="divide-x divide-zinc-200/80">
               {selectable && (
                 <th className="w-10 px-3 py-2.5 text-center">
                   <input
                     type="checkbox"
                     checked={allSelected}
                     onChange={onSelectAll}
-                    className="rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900 h-3.5 w-3.5 cursor-pointer"
+                    className="rounded border-zinc-300 text-zinc-800 focus:ring-zinc-800 h-3.5 w-3.5 cursor-pointer"
                   />
                 </th>
               )}
               {columns.map((col, idx) => (
                 <th
                   key={idx}
-                  className={cn("px-4 py-2.5 tracking-tight", col.headerClassName)}
+                  style={col.width ? { width: col.width } : undefined}
+                  className={cn("px-4 py-2.5 text-xs text-zinc-700 font-semibold", col.headerClassName)}
                 >
                   <div className="flex items-center gap-1.5">
                     <span>{col.header}</span>
@@ -99,7 +103,7 @@ export function DataTable<T>({
                   <tr
                     key={rowId}
                     className={cn(
-                      "hover:bg-zinc-50/70 transition-colors",
+                      "hover:bg-zinc-50/70 transition-colors divide-x divide-zinc-100",
                       isSelected && "bg-zinc-50"
                     )}
                   >
@@ -109,14 +113,14 @@ export function DataTable<T>({
                           type="checkbox"
                           checked={isSelected}
                           onChange={() => onSelectRow?.(rowId)}
-                          className="rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900 h-3.5 w-3.5 cursor-pointer"
+                          className="rounded border-zinc-300 text-zinc-800 focus:ring-zinc-800 h-3.5 w-3.5 cursor-pointer"
                         />
                       </td>
                     )}
                     {columns.map((col, colIdx) => (
                       <td
                         key={colIdx}
-                        className={cn("px-4 py-3 align-middle text-zinc-800", col.className)}
+                        className={cn("px-4 py-2.5 align-middle text-zinc-800", col.className)}
                       >
                         {col.cell
                           ? col.cell(row)
@@ -133,30 +137,33 @@ export function DataTable<T>({
         </table>
       </div>
 
-      {/* Pagination Footer */}
-      <div className="flex items-center justify-between text-xs text-zinc-500 px-1">
-        <div>
+      {/* Pagination Footer calibrated exactly to Clientes-Cartera.png */}
+      <div className="flex items-center justify-between text-xs px-1">
+        <span className="text-zinc-400 font-normal">
           Mostrando {data.length} de {count} {entityName}
-        </div>
-        <div className="flex items-center gap-1">
+        </span>
+
+        <div className="flex items-center gap-1.5">
           <button
             type="button"
             disabled={currentPage <= 1}
             onClick={() => onPageChange?.(currentPage - 1)}
-            className="p-1 rounded border border-zinc-200 hover:bg-zinc-50 disabled:opacity-40 disabled:pointer-events-none"
+            className="w-7 h-7 rounded border border-zinc-200 bg-white text-zinc-400 hover:text-zinc-700 hover:bg-zinc-50 flex items-center justify-center disabled:opacity-40 disabled:pointer-events-none transition-colors"
           >
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeft className="h-3.5 w-3.5" />
           </button>
-          <span className="px-2.5 py-1 rounded bg-zinc-900 text-white font-medium text-xs">
+
+          <span className="w-7 h-7 rounded bg-[#52525b] text-white text-xs font-semibold flex items-center justify-center shadow-2xs">
             {currentPage}
           </span>
+
           <button
             type="button"
             disabled={currentPage >= totalPages}
             onClick={() => onPageChange?.(currentPage + 1)}
-            className="p-1 rounded border border-zinc-200 hover:bg-zinc-50 disabled:opacity-40 disabled:pointer-events-none"
+            className="w-7 h-7 rounded border border-zinc-200 bg-white text-zinc-400 hover:text-zinc-700 hover:bg-zinc-50 flex items-center justify-center disabled:opacity-40 disabled:pointer-events-none transition-colors"
           >
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className="h-3.5 w-3.5" />
           </button>
         </div>
       </div>

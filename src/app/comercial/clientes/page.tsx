@@ -10,10 +10,12 @@ import {
   getClientes,
   ClientesCarteraTable,
   ClientesAsignacionesTable,
+  NuevoClienteModal,
 } from "@/modules/comercial/clientes";
 
 export default function ClientesPage() {
   const [activeTab, setActiveTab] = useState("cartera");
+  const [isNuevoClienteOpen, setIsNuevoClienteOpen] = useState(false);
   const clientes = getClientes();
 
   const tabs = [
@@ -27,7 +29,7 @@ export default function ClientesPage() {
         <PageHeader
           title="Clientes"
           actions={
-            <Button size="sm">
+            <Button size="sm" onClick={() => setIsNuevoClienteOpen(true)}>
               <Plus className="h-3.5 w-3.5" /> Nuevo cliente
             </Button>
           }
@@ -40,6 +42,11 @@ export default function ClientesPage() {
         ) : (
           <ClientesAsignacionesTable clientes={clientes} />
         )}
+
+        <NuevoClienteModal
+          isOpen={isNuevoClienteOpen}
+          onClose={() => setIsNuevoClienteOpen(false)}
+        />
       </div>
     </DashboardShell>
   );

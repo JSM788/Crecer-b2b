@@ -62,6 +62,7 @@ export const ClientesAsignacionesTable: React.FC<ClientesAsignacionesTableProps>
     {
       header: "Tienda",
       sortable: true,
+      width: "30%",
       cell: (row) => (
         <div>
           <Link
@@ -70,20 +71,23 @@ export const ClientesAsignacionesTable: React.FC<ClientesAsignacionesTableProps>
           >
             {row.name}
           </Link>
-          <span className="text-2xs text-zinc-400">{row.code}</span>
+          <span className="text-2xs text-zinc-400 font-normal">{row.code}</span>
         </div>
       ),
     },
     {
       header: "Distrito",
       accessorKey: "district",
+      width: "22%",
+      cell: (row) => <span className="font-medium text-zinc-800">{row.district}</span>,
     },
     {
       header: "Responsable",
+      width: "22%",
       cell: (row) => (
         <span
           className={
-            row.seller === "Sin asignar" ? "text-amber-600 font-medium" : "text-zinc-800"
+            row.seller === "Sin asignar" ? "text-amber-600 font-semibold" : "text-zinc-700 font-medium"
           }
         >
           {row.seller}
@@ -93,14 +97,17 @@ export const ClientesAsignacionesTable: React.FC<ClientesAsignacionesTableProps>
     {
       header: "Zona",
       accessorKey: "zone",
+      width: "18%",
+      cell: (row) => <span className="text-zinc-600">{row.zone}</span>,
     },
     {
       header: "",
-      className: "w-10 text-right",
+      width: "8%",
+      className: "text-center",
       cell: (row) => (
         <Link
           href={`/comercial/clientes/${row.id}/`}
-          className="p-1 rounded hover:bg-zinc-100 text-zinc-400 hover:text-zinc-700 inline-block"
+          className="p-1.5 rounded-md hover:bg-zinc-100 text-zinc-400 hover:text-zinc-700 inline-block transition-colors"
           title="Ver ficha"
         >
           <MoreVertical className="h-4 w-4" />
@@ -158,7 +165,7 @@ export const ClientesAsignacionesTable: React.FC<ClientesAsignacionesTableProps>
 
       {/* Floating Bottom Action Bar for Bulk Assignment */}
       {selectedIds.length > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-zinc-900 text-white px-5 py-2.5 rounded-full shadow-xl flex items-center gap-6 border border-zinc-700">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-[#27272a] text-white px-5 py-2.5 rounded-full shadow-2xl flex items-center gap-6 border border-zinc-700/60">
           <div className="flex items-center gap-2 text-xs font-medium">
             <CheckSquare className="h-4 w-4 text-emerald-400" />
             <span>

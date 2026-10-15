@@ -17,9 +17,10 @@ import { cn } from "@/shared/lib/utils";
 
 interface SidebarProps {
   collapsed?: boolean;
+  width?: string;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, width = "w-52" }) => {
   const pathname = usePathname();
   const [comercialOpen, setComercialOpen] = useState(true);
 
@@ -52,10 +53,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
     <aside
       className={cn(
         "h-[calc(100vh-3.5rem)] bg-white border-r border-zinc-200 transition-all duration-200 flex flex-col shrink-0 select-none",
-        collapsed ? "w-16" : "w-56"
+        collapsed ? "w-16" : width
       )}
     >
-      <div className="flex-1 py-3 px-2 space-y-1 overflow-y-auto">
+      <div className="flex-1 py-3 px-2 space-y-0.5 overflow-y-auto">
         {mainItems.map((item) => {
           const Icon = item.icon;
 
@@ -102,7 +103,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
                           className={cn(
                             "block px-2.5 py-1.5 text-xs rounded-md transition-colors",
                             isSubActive
-                              ? "bg-zinc-100 text-zinc-950 font-medium"
+                              ? "bg-zinc-100 text-zinc-950 font-semibold"
                               : "text-zinc-600 hover:text-zinc-950 hover:bg-zinc-50"
                           )}
                         >
