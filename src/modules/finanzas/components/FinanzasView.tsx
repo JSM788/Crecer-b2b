@@ -33,16 +33,8 @@ export const FinanzasView: React.FC = () => {
   const tabs = [
     {
       id: "conciliacion",
-      label: (
-        <span className="flex items-center gap-2">
-          Conciliación de pagos
-          {pendientesConciliacion > 0 && (
-            <span className="px-1.5 py-0.2 bg-amber-100 text-amber-800 text-[10px] font-bold rounded-full">
-              {pendientesConciliacion}
-            </span>
-          )}
-        </span>
-      ),
+      label: "Conciliación de pagos",
+      badge: pendientesConciliacion > 0 ? pendientesConciliacion : undefined,
     },
     {
       id: "cuentas-cobrar",
