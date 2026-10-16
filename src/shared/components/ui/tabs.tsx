@@ -3,7 +3,7 @@ import { cn } from "@/shared/lib/utils";
 
 export interface TabItem {
   id: string;
-  label: string;
+  label: React.ReactNode;
   badge?: string | number;
 }
 
