@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Search, Bell, Menu, Droplets, LogOut } from "lucide-react";
+import { Bell, Menu, Droplets, LogOut } from "lucide-react";
 import { useAuth } from "@/shared/lib/auth-context";
 import { cn } from "@/shared/lib/utils";
 
@@ -40,8 +40,8 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* 2. Main Top Header area */}
       <div className="flex-1 px-3 sm:px-4 flex items-center justify-between gap-2 sm:gap-4">
-        {/* Left: Hamburger button + (mobile logo) + Search bar */}
-        <div className="flex items-center gap-2 sm:gap-3 flex-1 max-w-xl">
+        {/* Left: Hamburger button + (mobile logo) */}
+        <div className="flex items-center gap-2 sm:gap-3">
           <button
             onClick={onToggleSidebar}
             className="p-1.5 rounded-md text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 transition-colors shrink-0"
@@ -58,16 +58,6 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="font-bold text-xs tracking-tight text-zinc-900 hidden sm:inline">
               Aquamundo
             </span>
-          </div>
-
-          {/* Search bar - Squared and well-proportioned */}
-          <div className="relative w-full max-w-[200px] sm:max-w-md">
-            <Search className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 text-zinc-400" />
-            <input
-              type="text"
-              placeholder="Buscar en Aquamundo..."
-              className="w-full h-8 sm:h-9 pl-8 sm:pl-9 pr-2.5 text-xs bg-white border border-zinc-200 rounded-md placeholder-zinc-400 focus:outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 transition-colors"
-            />
           </div>
         </div>
 
