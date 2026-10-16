@@ -2,11 +2,12 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { MoreVertical, CheckSquare } from "lucide-react";
+import { UserCheck, ExternalLink } from "lucide-react";
 import { DataTable, Column } from "@/shared/patterns/DataTable";
 import { FilterBar } from "@/shared/patterns/FilterBar";
 import { Select } from "@/shared/components/ui/select";
 import { Button } from "@/shared/components/ui/button";
+import { ActionMenu } from "@/shared/components/ui/action-menu";
 import { Cliente } from "../models/cliente.model";
 import { AsignarVendedorDrawer } from "./AsignarVendedorDrawer";
 
@@ -23,6 +24,7 @@ export const ClientesAsignacionesTable: React.FC<ClientesAsignacionesTableProps>
   const [zone, setZone] = useState("Todas");
   const [selectedIds, setSelectedIds] = useState<string[]>(["cl-001"]);
   const [isAsignarOpen, setIsAsignarOpen] = useState(false);
+  const [drawerClientes, setDrawerClientes] = useState<Cliente[]>([]);
 
   const filteredData = clientes.filter((c) => {
     const matchesSearch =
@@ -49,14 +51,27 @@ export const ClientesAsignacionesTable: React.FC<ClientesAsignacionesTableProps>
     }
   };
 
-  const handleAssignSeller = (newSeller: string) => {
-    setClientes((prev) =>
-      prev.map((c) => (selectedIds.includes(c.id) ? { ...c, seller: newSeller } : c))
-    );
-    setSelectedIds([]);
+  const selectedClientes = clientes.filter((c) => selectedIds.includes(c.id));
+
+  const handleOpenSingleAssign = (cliente: Cliente) => {
+    setDrawerClientes([cliente]);
+    setIsAsignarOpen(true);
   };
 
-  const selectedClientes = clientes.filter((c) => selectedIds.includes(c.id));
+  const handleOpenBulkAssign = () => {
+    setDrawerClientes(selectedClientes);
+    setIsAsignarOpen(true);
+  };
+
+  const handleAssignSeller = (newSeller: string) => {
+    const idsToUpdate = drawerClientes.map((c) => c.id);
+    setClientes((prev) =>
+      prev.map((c) => (idsToUpdate.includes(c.id) ? { ...c, seller: newSeller } : c))
+    );
+    setSelectedIds((prev) => prev.filter((id) => !idsToUpdate.includes(id)));
+    setDrawerClientes([]);
+    setIsAsignarOpen(false);
+  };
 
   const columns: Column<Cliente>[] = [
     {
@@ -105,13 +120,20 @@ export const ClientesAsignacionesTable: React.FC<ClientesAsignacionesTableProps>
       width: "8%",
       className: "text-center",
       cell: (row) => (
-        <Link
-          href={`/comercial/clientes/${row.id}/`}
-          className="p-1.5 rounded-md hover:bg-zinc-100 text-zinc-400 hover:text-zinc-700 inline-block transition-colors"
-          title="Ver ficha"
-        >
-          <MoreVertical className="h-4 w-4" />
-        </Link>
+        <ActionMenu
+          items={[
+            {
+              label: "Asignar comercial",
+              icon: <UserCheck className="h-3.5 w-3.5 text-zinc-500" />,
+              onClick: () => handleOpenSingleAssign(row),
+            },
+            {
+              label: "Ver ficha",
+              icon: <ExternalLink className="h-3.5 w-3.5 text-zinc-500" />,
+              href: `/comercial/clientes/${row.id}/`,
+            },
+          ]}
+        />
       ),
     },
   ];
@@ -176,7 +198,7 @@ export const ClientesAsignacionesTable: React.FC<ClientesAsignacionesTableProps>
           </div>
           <Button
             size="sm"
-            onClick={() => setIsAsignarOpen(true)}
+            onClick={handleOpenBulkAssign}
             className="text-xs font-semibold h-8 bg-[#27272a] hover:bg-zinc-800 text-white px-4 rounded-lg"
           >
             Asignar vendedor
@@ -186,8 +208,11 @@ export const ClientesAsignacionesTable: React.FC<ClientesAsignacionesTableProps>
 
       <AsignarVendedorDrawer
         isOpen={isAsignarOpen}
-        onClose={() => setIsAsignarOpen(false)}
-        selectedClientes={selectedClientes}
+        onClose={() => {
+          setIsAsignarOpen(false);
+          setDrawerClientes([]);
+        }}
+        selectedClientes={drawerClientes}
         onConfirm={handleAssignSeller}
       />
     </div>
