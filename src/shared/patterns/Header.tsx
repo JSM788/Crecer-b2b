@@ -13,7 +13,7 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({
   onToggleSidebar,
-  sidebarWidth = "w-56",
+  sidebarWidth = "w-52",
   isCollapsed = false,
 }) => {
   const { user, logout } = useAuth();
@@ -21,10 +21,10 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="h-14 bg-white border-b border-zinc-200 flex items-stretch sticky top-0 z-30 select-none">
-      {/* 1. Top-Left Logo Box: Exactly aligned with sidebar below */}
+      {/* 1. Desktop Top-Left Logo Box: Exactly aligned with sidebar below */}
       <div
         className={cn(
-          "flex items-center gap-2.5 px-4 border-r border-zinc-200 shrink-0 transition-all duration-200",
+          "hidden md:flex items-center gap-2.5 px-4 border-r border-zinc-200 shrink-0 transition-all duration-200",
           isCollapsed ? "w-16 justify-center px-0" : sidebarWidth
         )}
       >
@@ -38,31 +38,41 @@ export const Header: React.FC<HeaderProps> = ({
         )}
       </div>
 
-      {/* 2. Main Top Header area to the right of the divider line */}
-      <div className="flex-1 px-4 flex items-center justify-between gap-4">
-        {/* Left: Hamburger button directly to the right of the divider line + Squared Search bar */}
-        <div className="flex items-center gap-3 flex-1 max-w-xl">
+      {/* 2. Main Top Header area */}
+      <div className="flex-1 px-3 sm:px-4 flex items-center justify-between gap-2 sm:gap-4">
+        {/* Left: Hamburger button + (mobile logo) + Search bar */}
+        <div className="flex items-center gap-2 sm:gap-3 flex-1 max-w-xl">
           <button
             onClick={onToggleSidebar}
-            className="p-1.5 rounded-md text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 transition-colors"
+            className="p-1.5 rounded-md text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 transition-colors shrink-0"
             title="Alternar menú lateral"
           >
             <Menu className="h-5 w-5" />
           </button>
 
+          {/* Mini logo visible ONLY on mobile */}
+          <div className="flex md:hidden items-center gap-1.5 shrink-0 pr-1">
+            <div className="w-6 h-6 rounded-md bg-[#27272a] text-white flex items-center justify-center shrink-0">
+              <Droplets className="h-3.5 w-3.5" />
+            </div>
+            <span className="font-bold text-xs tracking-tight text-zinc-900 hidden sm:inline">
+              Aquamundo
+            </span>
+          </div>
+
           {/* Search bar - Squared and well-proportioned */}
-          <div className="relative w-full max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+          <div className="relative w-full max-w-[200px] sm:max-w-md">
+            <Search className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 text-zinc-400" />
             <input
               type="text"
               placeholder="Buscar en Aquamundo..."
-              className="w-full h-9 pl-9 pr-3 text-xs bg-white border border-zinc-200 rounded-md placeholder-zinc-400 focus:outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 transition-colors"
+              className="w-full h-8 sm:h-9 pl-8 sm:pl-9 pr-2.5 text-xs bg-white border border-zinc-200 rounded-md placeholder-zinc-400 focus:outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 transition-colors"
             />
           </div>
         </div>
 
-        {/* Right: Notifications & User profile (Company dropdown removed as requested) */}
-        <div className="flex items-center gap-4">
+        {/* Right: Notifications & User profile */}
+        <div className="flex items-center gap-2 sm:gap-4 shrink-0">
           <button
             type="button"
             className="relative p-1.5 text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100 rounded-md transition-colors"
@@ -78,7 +88,7 @@ export const Header: React.FC<HeaderProps> = ({
               onClick={() => setShowUserMenu(!showUserMenu)}
               className="flex items-center gap-2 p-1 rounded-md hover:bg-zinc-50 transition-colors text-left"
             >
-              <div className="w-8 h-8 rounded-full bg-zinc-200 text-zinc-700 flex items-center justify-center text-xs font-bold">
+              <div className="w-8 h-8 rounded-full bg-zinc-200 text-zinc-700 flex items-center justify-center text-xs font-bold shrink-0">
                 {user?.initials || (user?.name ? user.name.split(" ").map(n => n[0]).join("").slice(0, 2) : "JG")}
               </div>
               <div className="hidden sm:block leading-tight">
@@ -95,8 +105,8 @@ export const Header: React.FC<HeaderProps> = ({
             {showUserMenu && (
               <div className="absolute right-0 mt-2 w-48 bg-white border border-zinc-200 rounded-lg shadow-lg py-1 z-50 text-xs">
                 <div className="px-3 py-2 border-b border-zinc-100">
-                  <p className="font-semibold text-zinc-900">{user?.name || "Juan Pérez"}</p>
-                  <p className="text-zinc-400 text-2xs">{user?.email || "jperez@aquamundo.pe"}</p>
+                  <p className="font-semibold text-zinc-900">{user?.name || "Juan García"}</p>
+                  <p className="text-zinc-400 text-2xs">{user?.email || "jgarcia@aquamundo.pe"}</p>
                 </div>
                 <button
                   onClick={() => {
