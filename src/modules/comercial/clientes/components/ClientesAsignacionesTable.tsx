@@ -2,12 +2,11 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { UserCheck, ExternalLink } from "lucide-react";
+import { UserCheck } from "lucide-react";
 import { DataTable, Column } from "@/shared/patterns/DataTable";
 import { FilterBar } from "@/shared/patterns/FilterBar";
 import { Select } from "@/shared/components/ui/select";
 import { Button } from "@/shared/components/ui/button";
-import { ActionMenu } from "@/shared/components/ui/action-menu";
 import { Cliente } from "../models/cliente.model";
 import { AsignarVendedorDrawer } from "./AsignarVendedorDrawer";
 
@@ -112,28 +111,23 @@ export const ClientesAsignacionesTable: React.FC<ClientesAsignacionesTableProps>
     {
       header: "Zona",
       accessorKey: "zone",
-      width: "18%",
+      width: "16%",
       cell: (row) => <span className="text-zinc-600">{row.zone}</span>,
     },
     {
-      header: "",
-      width: "8%",
-      className: "text-center",
+      header: "Acción",
+      width: "14%",
+      className: "text-right",
       cell: (row) => (
-        <ActionMenu
-          items={[
-            {
-              label: "Asignar comercial",
-              icon: <UserCheck className="h-3.5 w-3.5 text-zinc-500" />,
-              onClick: () => handleOpenSingleAssign(row),
-            },
-            {
-              label: "Ver ficha",
-              icon: <ExternalLink className="h-3.5 w-3.5 text-zinc-500" />,
-              href: `/comercial/clientes/${row.id}/`,
-            },
-          ]}
-        />
+        <button
+          type="button"
+          onClick={() => handleOpenSingleAssign(row)}
+          className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:text-zinc-950 bg-zinc-100 hover:bg-zinc-200/90 rounded-md transition-colors"
+          title="Asignar comercial"
+        >
+          <UserCheck className="h-3.5 w-3.5 text-zinc-600" />
+          <span>Asignar</span>
+        </button>
       ),
     },
   ];
@@ -185,7 +179,7 @@ export const ClientesAsignacionesTable: React.FC<ClientesAsignacionesTableProps>
         entityName="clientes"
       />
 
-      {/* Floating Bottom Action Bar for Bulk Assignment matching Clientes-Asignacion-2.png */}
+      {/* Floating Bottom Action Bar for Bulk Assignment */}
       {selectedIds.length > 0 && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-white border border-zinc-200/90 shadow-xl rounded-xl px-4 py-2.5 flex items-center justify-between gap-8 min-w-[340px] sm:min-w-[420px]">
           <div className="flex items-center gap-2.5 text-xs font-semibold text-zinc-900">

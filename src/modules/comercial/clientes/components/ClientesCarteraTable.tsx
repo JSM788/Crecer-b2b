@@ -2,14 +2,12 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { MoreVertical, Filter } from "lucide-react";
+import { Eye, Filter, Search } from "lucide-react";
 import { DataTable, Column } from "@/shared/patterns/DataTable";
 import { Select } from "@/shared/components/ui/select";
 import { Button } from "@/shared/components/ui/button";
-import { Badge } from "@/shared/components/ui/badge";
 import { Cliente } from "../models/cliente.model";
 import { MasFiltrosPopover } from "./MasFiltrosPopover";
-import { Search } from "lucide-react";
 
 interface ClientesCarteraTableProps {
   clientes: Cliente[];
@@ -42,7 +40,7 @@ export const ClientesCarteraTable: React.FC<ClientesCarteraTableProps> = ({ clie
     {
       header: "Cliente",
       sortable: true,
-      width: "32%",
+      width: "30%",
       cell: (row) => (
         <div>
           <Link
@@ -73,7 +71,7 @@ export const ClientesCarteraTable: React.FC<ClientesCarteraTableProps> = ({ clie
     },
     {
       header: "Condición",
-      width: "16%",
+      width: "14%",
       cell: (row) => (
         <span
           className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-2xs font-semibold ${
@@ -87,16 +85,17 @@ export const ClientesCarteraTable: React.FC<ClientesCarteraTableProps> = ({ clie
       ),
     },
     {
-      header: "",
-      width: "8%",
-      className: "text-center",
+      header: "Acción",
+      width: "12%",
+      className: "text-right",
       cell: (row) => (
         <Link
           href={`/comercial/clientes/${row.id}/`}
-          className="p-1.5 rounded-md hover:bg-zinc-100 text-zinc-400 hover:text-zinc-700 inline-block transition-colors"
+          className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:text-zinc-950 bg-zinc-100 hover:bg-zinc-200/90 rounded-md transition-colors"
           title="Ver ficha"
         >
-          <MoreVertical className="h-4 w-4" />
+          <Eye className="h-3.5 w-3.5 text-zinc-600" />
+          <span>Ver ficha</span>
         </Link>
       ),
     },
