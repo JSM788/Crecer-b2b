@@ -44,14 +44,19 @@ export default function SolicitudesPage() {
                 <Button variant="secondary" size="sm">
                   Vista de gerencia
                 </Button>
+                {/* Ocultado temporalmente: acción ejecutada en App Móvil / ERP (SAP/Defontana)
                 <Button size="sm" onClick={() => setIsVisitaOpen(true)}>
                   <Plus className="h-3.5 w-3.5" /> Nueva solicitud
                 </Button>
+                */}
               </div>
             ) : (
+              /* Ocultado temporalmente: acción ejecutada en App Móvil / ERP (SAP/Defontana)
               <Button size="sm" onClick={() => setIsPopOpen(true)}>
                 <Plus className="h-3.5 w-3.5" /> Solicitar material
               </Button>
+              */
+              undefined
             )
           }
         />

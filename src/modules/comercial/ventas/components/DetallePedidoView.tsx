@@ -46,9 +46,11 @@ export const DetallePedidoView: React.FC<DetallePedidoViewProps> = ({ pedido }) 
         subtitle={`${pedido.clienteName} | RUC ${pedido.ruc}`}
         actions={
           <div className="flex items-center gap-2">
+            {/* Ocultado temporalmente: acción ejecutada en App Móvil / ERP (SAP/Defontana)
             <Button size="sm" onClick={() => setIsReportarOpen(true)} className="gap-1.5">
               <Upload className="h-3.5 w-3.5" /> Reportar pago
             </Button>
+            */}
             <button className="p-1.5 rounded-md hover:bg-zinc-100 text-zinc-400 hover:text-zinc-700">
               <MoreVertical className="h-4 w-4" />
             </button>

@@ -36,6 +36,7 @@ export default function VentasPage() {
           title="Ventas"
           subtitle="Gestiona cotizaciones y pedidos de clientes"
           actions={
+            /* Ocultado temporalmente: acción ejecutada en App Móvil / ERP (SAP/Defontana)
             activeTab === "cotizaciones" ? (
               <Link href="/comercial/ventas/cotizaciones/nueva/">
                 <Button size="sm">
@@ -49,6 +50,8 @@ export default function VentasPage() {
                 </Button>
               </Link>
             )
+            */
+            undefined
           }
         />
 

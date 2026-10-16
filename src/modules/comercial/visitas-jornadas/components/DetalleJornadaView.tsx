@@ -74,6 +74,7 @@ export const DetalleJornadaView: React.FC = () => {
               <Badge variant="info">En jornada</Badge>
               <span className="text-xs text-zinc-500 font-medium">2 / 5 visitas</span>
             </div>
+            {/* Ocultado temporalmente: acción ejecutada en App Móvil / ERP (SAP/Defontana)
             <Button variant="secondary" size="sm" className="gap-1.5">
               <Coffee className="h-3.5 w-3.5" /> Refrigerio
             </Button>
@@ -84,6 +85,7 @@ export const DetalleJornadaView: React.FC = () => {
             >
               {isFinalizada ? "Jornada finalizada" : "Finalizar jornada"}
             </Button>
+            */}
           </div>
         }
       />
@@ -108,12 +110,10 @@ export const DetalleJornadaView: React.FC = () => {
                         {item.num}
                       </span>
                       <div>
-                        <Link
-                          href="/comercial/visitas-jornadas/visita-activa/"
-                          className="font-semibold text-xs text-zinc-900 hover:underline"
-                        >
+                        {/* Ocultado temporalmente: el flujo de ejecución de visita activa ocurre en la App Móvil */}
+                        <span className="font-semibold text-xs text-zinc-900">
                           {item.client}
-                        </Link>
+                        </span>
                         <p className="text-2xs text-zinc-400">{item.time}</p>
                       </div>
                     </div>

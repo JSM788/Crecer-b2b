@@ -16,6 +16,7 @@ import {
   Droplets,
 } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
+import { useAuth } from "@/shared/lib/auth-context";
 
 interface SidebarProps {
   collapsed?: boolean;
@@ -31,6 +32,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onMobileClose,
 }) => {
   const pathname = usePathname();
+  const { user } = useAuth();
   const [comercialOpen, setComercialOpen] = useState(true);
 
   // Auto-close mobile drawer on route change
@@ -50,7 +52,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { label: "Gastos", href: "/comercial/gastos/" },
   ];
 
-  const mainItems = [
+  const allMainItems = [
     { label: "Inicio", href: "/inicio/", icon: Home },
     {
       label: "Comercial",
@@ -58,12 +60,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: Users,
       hasChildren: true,
     },
-    { label: "Catálogo", href: "/catalogo/", icon: BookOpen },
-    { label: "Inventario", href: "/inventario/", icon: Package },
+    // Ocultados temporalmente hasta integración de ERP (SAP / Defontana) y módulos correspondientes
+    // { label: "Catálogo", href: "/catalogo/", icon: BookOpen },
+    // { label: "Inventario", href: "/inventario/", icon: Package },
     { label: "Finanzas", href: "/finanzas/", icon: CircleDollarSign },
-    { label: "Reportes", href: "/reportes/", icon: BarChart3 },
-    { label: "Configuración", href: "/configuracion/", icon: Settings },
+    // { label: "Reportes", href: "/reportes/", icon: BarChart3 },
+    // { label: "Configuración", href: "/configuracion/", icon: Settings },
   ];
+
+  // Rol Finanzas solo visualiza su módulo correspondiente
+  const mainItems =
+    user?.role === "Finanzas"
+      ? allMainItems.filter((item) => item.label === "Finanzas")
+      : allMainItems;
 
   const renderNavItems = (isMobileDrawer: boolean) => (
     <div className="flex-1 py-3 px-2 space-y-0.5 overflow-y-auto">

@@ -46,6 +46,7 @@ export const ClienteFichaView: React.FC<ClienteFichaViewProps> = ({ cliente }) =
         subtitle={`Cliente · ${cliente.code}`}
         actions={
           <div className="flex items-center gap-2.5">
+            {/* Ocultado temporalmente: acción ejecutada en App Móvil / ERP (SAP/Defontana)
             <Link href="/comercial/ventas/pedidos/nuevo/">
               <Button variant="secondary" size="sm">
                 Nuevo pedido
@@ -56,6 +57,7 @@ export const ClienteFichaView: React.FC<ClienteFichaViewProps> = ({ cliente }) =
                 Nueva cotización
               </Button>
             </Link>
+            */}
           </div>
         }
       />
@@ -246,6 +248,7 @@ export const ClienteFichaView: React.FC<ClienteFichaViewProps> = ({ cliente }) =
                   </div>
                 </div>
 
+                {/* Ocultado temporalmente: acción ejecutada en App Móvil / ERP (SAP/Defontana)
                 <div className="pt-2 border-t border-zinc-100">
                   <Link
                     href="/comercial/ventas/pedidos/ped-1042/"
@@ -254,6 +257,7 @@ export const ClienteFichaView: React.FC<ClienteFichaViewProps> = ({ cliente }) =
                     Reportar pago
                   </Link>
                 </div>
+                */}
               </CardContent>
             </Card>
           </div>

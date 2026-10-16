@@ -41,9 +41,11 @@ export const DetalleCotizacionView: React.FC<DetalleCotizacionViewProps> = ({ co
             <Button variant="secondary" size="sm" className="gap-1.5">
               <FileText className="h-4 w-4" /> Vista previa PDF
             </Button>
+            {/* Ocultado temporalmente: acción ejecutada en App Móvil / ERP (SAP/Defontana)
             <Link href="/comercial/ventas/pedidos/nuevo/">
               <Button size="sm">Convertir a pedido</Button>
             </Link>
+            */}
           </div>
         }
       />

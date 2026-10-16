@@ -121,9 +121,11 @@ export const JornadasView: React.FC<JornadasViewProps> = ({ jornadas }) => {
           </div>
         </div>
 
+        {/* Ocultado temporalmente: acción ejecutada en App Móvil / ERP (SAP/Defontana)
         <Link href="/comercial/visitas-jornadas/jornada/j-01/">
           <Button size="sm">Ver mi jornada</Button>
         </Link>
+        */}
       </div>
 
       {/* KPI Cards Row */}

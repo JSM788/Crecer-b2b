@@ -6,7 +6,7 @@ import { useRouter, usePathname } from "next/navigation";
 export interface UserProfile {
   username: string;
   name: string;
-  role: "Gerencia" | "Finanzas";
+  role: "Gerencia" | "Finanzas" | "Operaciones Comerciales";
   email: string;
   initials: string;
   defaultRoute: string;
@@ -24,6 +24,17 @@ export const USERS_DB: Record<string, { pass: string; profile: UserProfile }> = 
       defaultRoute: "/inicio/",
     },
   },
+  gerencia: {
+    pass: "gerencia123",
+    profile: {
+      username: "gerencia",
+      name: "Juan García",
+      role: "Gerencia",
+      email: "jgarcia@aquamundo.pe",
+      initials: "JG",
+      defaultRoute: "/inicio/",
+    },
+  },
   finanzas: {
     pass: "finanzas123",
     profile: {
@@ -33,6 +44,17 @@ export const USERS_DB: Record<string, { pass: string; profile: UserProfile }> = 
       email: "ecastro@aquamundo.pe",
       initials: "EC",
       defaultRoute: "/finanzas/",
+    },
+  },
+  operaciones: {
+    pass: "operaciones123",
+    profile: {
+      username: "operaciones",
+      name: "Roberto Méndez",
+      role: "Operaciones Comerciales",
+      email: "rmendez@aquamundo.pe",
+      initials: "RM",
+      defaultRoute: "/comercial/clientes/",
     },
   },
 };
@@ -87,7 +109,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const cleanUser = (usernameInput || "").trim().toLowerCase();
     const cleanPass = (passInput || "").trim();
 
-    // 1. Matches Finanzas
+    // 1. Matches Operaciones Comerciales
+    if (
+      cleanUser === "operaciones" ||
+      cleanUser === "operador" ||
+      cleanPass === "operaciones123" ||
+      (cleanUser.includes("opera") && cleanPass.includes("123"))
+    ) {
+      const opProfile = USERS_DB.operaciones.profile;
+      setIsAuthenticated(true);
+      setUser(opProfile);
+      try {
+        localStorage.setItem("aquamundo_auth", "true");
+        localStorage.setItem("aquamundo_username", "operaciones");
+      } catch {}
+      router.push(opProfile.defaultRoute);
+      return true;
+    }
+
+    // 2. Matches Finanzas
     if (
       cleanUser === "finanzas" ||
       cleanPass === "finanzas123" ||
@@ -104,19 +144,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return true;
     }
 
-    // 2. Matches Admin / Gerencia
+    // 3. Matches Gerencia / Admin
     if (
       cleanUser === "admin" ||
+      cleanUser === "gerencia" ||
       cleanPass === "admin123" ||
+      cleanPass === "gerencia123" ||
       cleanPass === "aquamundo2026" ||
       cleanPass === "admin"
     ) {
-      const adminProfile = USERS_DB.admin.profile;
+      const adminProfile = USERS_DB.gerencia.profile;
       setIsAuthenticated(true);
       setUser(adminProfile);
       try {
         localStorage.setItem("aquamundo_auth", "true");
-        localStorage.setItem("aquamundo_username", "admin");
+        localStorage.setItem("aquamundo_username", "gerencia");
       } catch {}
       router.push(adminProfile.defaultRoute);
       return true;

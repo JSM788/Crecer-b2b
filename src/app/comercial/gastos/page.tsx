@@ -27,9 +27,12 @@ export default function GastosPage() {
           title="Gastos"
           subtitle="Rendiciones de campo"
           actions={
+            /* Ocultado temporalmente: acción ejecutada en App Móvil / ERP (SAP/Defontana)
             <Button size="sm" onClick={() => setIsRegistrarOpen(true)}>
               <Plus className="h-3.5 w-3.5" /> Registrar gasto
             </Button>
+            */
+            undefined
           }
         />
 
