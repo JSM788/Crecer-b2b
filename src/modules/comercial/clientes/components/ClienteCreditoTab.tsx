@@ -47,6 +47,14 @@ export const ClienteCreditoTab: React.FC<ClienteCreditoTabProps> = ({ cliente })
   const [searchDoc, setSearchDoc] = useState("");
   const [vencimientoFilter, setVencimientoFilter] = useState("Todos");
 
+  const creditLimit = cliente?.creditLimit ?? 5000;
+  const currentDebt = cliente?.currentDebt ?? 2600;
+  const availableCredit = cliente?.availableCredit ?? Math.max(0, creditLimit - currentDebt);
+  const expiredDebt = cliente?.expiredDebt ?? 0;
+  const condition = cliente?.condition ?? "Al día";
+
+  const usedPercent = creditLimit > 0 ? Math.round((currentDebt / creditLimit) * 100) : 52;
+
   const filteredDocs = DOCUMENTOS_PENDIENTES.filter((doc) => {
     const matchesSearch = !searchDoc || doc.code.toLowerCase().includes(searchDoc.toLowerCase());
     return matchesSearch;
@@ -80,7 +88,7 @@ export const ClienteCreditoTab: React.FC<ClienteCreditoTabProps> = ({ cliente })
           <CardContent className="p-4 space-y-1">
             <p className="text-2xs font-medium text-zinc-500">Línea de crédito</p>
             <p className="text-xl font-bold text-zinc-950">
-              S/ {cliente.creditLine.toLocaleString("es-PE", { minimumFractionDigits: 0 })}
+              S/ {creditLimit.toLocaleString("es-PE", { minimumFractionDigits: 0 })}
             </p>
           </CardContent>
         </Card>
@@ -90,16 +98,19 @@ export const ClienteCreditoTab: React.FC<ClienteCreditoTabProps> = ({ cliente })
           <CardContent className="p-4 space-y-1.5">
             <p className="text-2xs font-medium text-zinc-500">Crédito utilizado</p>
             <p className="text-xl font-bold text-zinc-950">
-              S/ {cliente.usedCredit.toLocaleString("es-PE", { minimumFractionDigits: 0 })}
+              S/ {currentDebt.toLocaleString("es-PE", { minimumFractionDigits: 0 })}
             </p>
             <div className="space-y-1 pt-0.5">
               <div className="flex items-center gap-2">
                 <div className="flex-1 h-2 bg-zinc-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-zinc-700 rounded-full w-[52%]" />
+                  <div
+                    className="h-full bg-zinc-700 rounded-full transition-all"
+                    style={{ width: `${Math.min(100, usedPercent)}%` }}
+                  />
                 </div>
-                <span className="text-2xs text-zinc-500 font-semibold">52%</span>
+                <span className="text-2xs text-zinc-500 font-semibold">{usedPercent}%</span>
               </div>
-              <p className="text-2xs text-zinc-400">52% de la línea utilizada</p>
+              <p className="text-2xs text-zinc-400">{usedPercent}% de la línea utilizada</p>
             </div>
           </CardContent>
         </Card>
@@ -109,9 +120,7 @@ export const ClienteCreditoTab: React.FC<ClienteCreditoTabProps> = ({ cliente })
           <CardContent className="p-4 space-y-1">
             <p className="text-2xs font-medium text-zinc-500">Crédito disponible</p>
             <p className="text-xl font-bold text-zinc-950">
-              S/ {(cliente.creditLine - cliente.usedCredit).toLocaleString("es-PE", {
-                minimumFractionDigits: 0,
-              })}
+              S/ {availableCredit.toLocaleString("es-PE", { minimumFractionDigits: 0 })}
             </p>
           </CardContent>
         </Card>
@@ -120,7 +129,9 @@ export const ClienteCreditoTab: React.FC<ClienteCreditoTabProps> = ({ cliente })
         <Card className="shadow-xs border-zinc-200">
           <CardContent className="p-4 space-y-1">
             <p className="text-2xs font-medium text-zinc-500">Deuda vencida</p>
-            <p className="text-xl font-bold text-zinc-950">S/ 0</p>
+            <p className="text-xl font-bold text-zinc-950">
+              S/ {expiredDebt.toLocaleString("es-PE", { minimumFractionDigits: 0 })}
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -130,7 +141,7 @@ export const ClienteCreditoTab: React.FC<ClienteCreditoTabProps> = ({ cliente })
         <div className="flex items-center gap-2.5">
           <span className="text-xs text-zinc-600 font-medium">Estado de crédito</span>
           <span className="px-3 py-0.5 rounded-full text-2xs font-bold bg-zinc-200 text-zinc-900">
-            Al día
+            {condition}
           </span>
         </div>
 
