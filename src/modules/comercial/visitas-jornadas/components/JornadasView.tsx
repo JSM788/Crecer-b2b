@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { Calendar, Users, AlertCircle, X, ChevronRight, MoreVertical } from "lucide-react";
+import { Calendar, Users, AlertCircle, X, ChevronRight } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Select } from "@/shared/components/ui/select";
 import { Card, CardContent } from "@/shared/components/ui/card";
@@ -65,20 +65,15 @@ export const JornadasView: React.FC<JornadasViewProps> = ({ jornadas }) => {
       header: "Acción",
       className: "w-28 text-right",
       cell: (row) => (
-        <div className="flex items-center justify-end gap-1.5">
-          <Link href={`/comercial/visitas-jornadas/jornada/${row.id}/`}>
-            <Button
-              size="sm"
-              variant={row.status === "En jornada" ? "primary" : "secondary"}
-              className="h-7 text-xs px-2.5"
-            >
-              {row.status === "En jornada" ? "Abrir" : row.status === "Interrumpida" ? "Revisar" : "Ver"}
-            </Button>
-          </Link>
-          <button className="p-1 text-zinc-400 hover:text-zinc-700 rounded">
-            <MoreVertical className="h-4 w-4" />
-          </button>
-        </div>
+        <Link href={`/comercial/visitas-jornadas/jornada/${row.id}/`}>
+          <Button
+            size="sm"
+            variant={row.status === "En jornada" ? "primary" : "secondary"}
+            className="h-7 text-xs px-2.5"
+          >
+            {row.status === "En jornada" ? "Abrir" : row.status === "Interrumpida" ? "Revisar" : "Ver"}
+          </Button>
+        </Link>
       ),
     },
   ];

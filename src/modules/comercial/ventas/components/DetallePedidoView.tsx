@@ -7,7 +7,6 @@ import {
   Calendar,
   Clock,
   Upload,
-  MoreVertical,
   CheckCircle,
 } from "lucide-react";
 import { PageHeader } from "@/shared/patterns/PageHeader";
@@ -17,13 +16,16 @@ import { Tabs } from "@/shared/components/ui/tabs";
 import { formatCurrency } from "@/shared/lib/utils";
 import { Pedido } from "../models/venta.model";
 import { ReportarPagoDrawer } from "./ReportarPagoDrawer";
+import { PedidoResumenTab } from "./PedidoResumenTab";
+import { PedidoProductosTab } from "./PedidoProductosTab";
+import { PedidoHistorialTab } from "./PedidoHistorialTab";
 
 interface DetallePedidoViewProps {
   pedido: Pedido;
 }
 
 export const DetallePedidoView: React.FC<DetallePedidoViewProps> = ({ pedido }) => {
-  const [activeTab, setActiveTab] = useState("pago_reserva");
+  const [activeTab, setActiveTab] = useState("resumen");
   const [isReportarOpen, setIsReportarOpen] = useState(false);
 
   const tabs = [
@@ -44,23 +46,16 @@ export const DetallePedidoView: React.FC<DetallePedidoViewProps> = ({ pedido }) 
         ]}
         title={`Pedido ${pedido.code}`}
         subtitle={`${pedido.clienteName} | RUC ${pedido.ruc}`}
-        actions={
-          <div className="flex items-center gap-2">
-            {/* Ocultado temporalmente: acción ejecutada en App Móvil / ERP (SAP/Defontana)
-            <Button size="sm" onClick={() => setIsReportarOpen(true)} className="gap-1.5">
-              <Upload className="h-3.5 w-3.5" /> Reportar pago
-            </Button>
-            */}
-            <button className="p-1.5 rounded-md hover:bg-zinc-100 text-zinc-400 hover:text-zinc-700">
-              <MoreVertical className="h-4 w-4" />
-            </button>
-          </div>
-        }
+        actions={undefined}
       />
 
       <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
 
-      {activeTab === "pago_reserva" ? (
+      {activeTab === "resumen" && <PedidoResumenTab pedido={pedido} />}
+      {activeTab === "productos" && <PedidoProductosTab pedido={pedido} />}
+      {activeTab === "historial" && <PedidoHistorialTab pedido={pedido} />}
+
+      {activeTab === "pago_reserva" && (
         <div className="space-y-5">
           {/* Status Cards Row (3) */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -172,13 +167,6 @@ export const DetallePedidoView: React.FC<DetallePedidoViewProps> = ({ pedido }) 
             </CardContent>
           </Card>
         </div>
-      ) : (
-        <Card>
-          <CardContent className="p-12 text-center text-zinc-400">
-            <p className="text-sm font-medium text-zinc-600">Sección en preparación</p>
-            <p className="text-xs mt-1">El detalle de {activeTab} se encuentra en la vista principal.</p>
-          </CardContent>
-        </Card>
       )}
 
       <ReportarPagoDrawer

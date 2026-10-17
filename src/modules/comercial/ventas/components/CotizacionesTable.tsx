@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { MoreVertical, Calendar } from "lucide-react";
+import { Calendar } from "lucide-react";
 import { DataTable, Column } from "@/shared/patterns/DataTable";
 import { FilterBar } from "@/shared/patterns/FilterBar";
 import { Select } from "@/shared/components/ui/select";
@@ -81,16 +81,11 @@ export const CotizacionesTable: React.FC<CotizacionesTableProps> = ({ cotizacion
       header: "Acción",
       className: "w-24 text-right",
       cell: (row) => (
-        <div className="flex items-center justify-end gap-1">
-          <Link href={`/comercial/ventas/cotizaciones/${row.id}/`}>
-            <Button size="sm" variant="secondary" className="h-7 text-xs px-3">
-              Ver
-            </Button>
-          </Link>
-          <button className="p-1 text-zinc-400 hover:text-zinc-700 rounded">
-            <MoreVertical className="h-4 w-4" />
-          </button>
-        </div>
+        <Link href={`/comercial/ventas/cotizaciones/${row.id}/`}>
+          <Button size="sm" variant="secondary" className="h-7 text-xs px-3">
+            Ver
+          </Button>
+        </Link>
       ),
     },
   ];
