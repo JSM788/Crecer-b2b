@@ -19,6 +19,9 @@ import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { formatCurrency } from "@/shared/lib/utils";
 import { Cliente } from "../models/cliente.model";
+import { ClienteComprasTab } from "./ClienteComprasTab";
+import { ClienteCreditoTab } from "./ClienteCreditoTab";
+import { ClienteActividadTab } from "./ClienteActividadTab";
 
 interface ClienteFichaViewProps {
   cliente: Cliente;
@@ -262,14 +265,13 @@ export const ClienteFichaView: React.FC<ClienteFichaViewProps> = ({ cliente }) =
             </Card>
           </div>
         </div>
-      ) : (
-        <Card>
-          <CardContent className="p-12 text-center text-zinc-400">
-            <p className="text-sm font-medium text-zinc-600">Sección en preparación</p>
-            <p className="text-xs mt-1">La información de {activeTab} se conectará con el módulo correspondiente.</p>
-          </CardContent>
-        </Card>
-      )}
+      ) : activeTab === "compras" ? (
+        <ClienteComprasTab cliente={cliente} />
+      ) : activeTab === "credito" ? (
+        <ClienteCreditoTab cliente={cliente} />
+      ) : activeTab === "actividad" ? (
+        <ClienteActividadTab cliente={cliente} />
+      ) : null}
     </div>
   );
 };
