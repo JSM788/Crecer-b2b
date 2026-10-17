@@ -6,3 +6,4 @@ export { MaterialPOPTable } from "./components/MaterialPOPTable";
 export { SolicitarVisitaDrawer } from "./components/SolicitarVisitaDrawer";
 export { SolicitarMaterialPOPDrawer } from "./components/SolicitarMaterialPOPDrawer";
 export { RevisarSolicitudDrawer } from "./components/RevisarSolicitudDrawer";
+export { DetalleMaterialPOPDrawer } from "./components/DetalleMaterialPOPDrawer";

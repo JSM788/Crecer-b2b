@@ -7,6 +7,7 @@ import { Select } from "@/shared/components/ui/select";
 import { Button } from "@/shared/components/ui/button";
 import { Badge } from "@/shared/components/ui/badge";
 import { MaterialPOP } from "../models/solicitud.model";
+import { DetalleMaterialPOPDrawer } from "./DetalleMaterialPOPDrawer";
 
 interface MaterialPOPTableProps {
   materiales: MaterialPOP[];
@@ -21,6 +22,7 @@ export const MaterialPOPTable: React.FC<MaterialPOPTableProps> = ({
   const [status, setStatus] = useState("Todos");
   const [brand, setBrand] = useState("Todas");
   const [seller, setSeller] = useState("Todos");
+  const [selectedMaterial, setSelectedMaterial] = useState<MaterialPOP | null>(null);
 
   const filtered = materiales.filter((m) => {
     const matchesSearch =
@@ -77,7 +79,12 @@ export const MaterialPOPTable: React.FC<MaterialPOPTableProps> = ({
       header: "Acción",
       className: "w-24 text-right",
       cell: (row) => (
-        <Button size="sm" variant="secondary" className="h-7 text-xs px-3">
+        <Button
+          size="sm"
+          variant="secondary"
+          className="h-7 text-xs px-3"
+          onClick={() => setSelectedMaterial(row)}
+        >
           Ver
         </Button>
       ),
@@ -137,6 +144,12 @@ export const MaterialPOPTable: React.FC<MaterialPOPTableProps> = ({
         data={filtered}
         keyExtractor={(row) => row.id}
         entityName="solicitudes"
+      />
+
+      <DetalleMaterialPOPDrawer
+        isOpen={!!selectedMaterial}
+        onClose={() => setSelectedMaterial(null)}
+        material={selectedMaterial}
       />
     </div>
   );
