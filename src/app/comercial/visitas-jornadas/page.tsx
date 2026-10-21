@@ -5,9 +5,8 @@ import { Calendar } from "lucide-react";
 import { DashboardShell } from "@/shared/layout/DashboardShell";
 import { PageHeader } from "@/shared/patterns/PageHeader";
 import { Tabs } from "@/shared/components/ui/tabs";
+import { useDemo } from "@/shared/state/demo-store";
 import {
-  getAgendaItems,
-  getJornadas,
   getRegistrosVisita,
   AgendaView,
   JornadasView,
@@ -17,8 +16,7 @@ import {
 export default function VisitasJornadasPage() {
   const [activeTab, setActiveTab] = useState("agenda");
 
-  const agenda = getAgendaItems();
-  const jornadas = getJornadas();
+  const { agenda, jornadas } = useDemo();
   const registros = getRegistrosVisita();
 
   const tabs = [
@@ -36,7 +34,7 @@ export default function VisitasJornadasPage() {
             { label: "Visitas y jornadas" },
           ]}
           title="Visitas y jornadas"
-          subtitle="Planifica y consulta las visitas comerciales"
+          subtitle="Supervisa las visitas y jornadas del equipo comercial"
           actions={
             <div className="flex items-center gap-2 px-3 py-1.5 border border-zinc-200 rounded-md text-xs font-medium bg-white text-zinc-800">
               <Calendar className="h-4 w-4 text-zinc-500" />

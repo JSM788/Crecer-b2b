@@ -6,9 +6,8 @@ import { DashboardShell } from "@/shared/layout/DashboardShell";
 import { PageHeader } from "@/shared/patterns/PageHeader";
 import { Tabs } from "@/shared/components/ui/tabs";
 import { Button } from "@/shared/components/ui/button";
+import { useDemo } from "@/shared/state/demo-store";
 import {
-  getVisitasExtraordinarias,
-  getMaterialPOP,
   VisitasExtraordinariasTable,
   MaterialPOPTable,
   SolicitarVisitaDrawer,
@@ -20,12 +19,20 @@ export default function SolicitudesPage() {
   const [isVisitaOpen, setIsVisitaOpen] = useState(false);
   const [isPopOpen, setIsPopOpen] = useState(false);
 
-  const visitas = getVisitasExtraordinarias();
-  const materiales = getMaterialPOP();
+  const { visitasExtra: visitas, pops: materiales } = useDemo();
 
+  // Badges count only requests waiting for a decision.
   const tabs = [
-    { id: "visitas", label: "Visitas extraordinarias" },
-    { id: "material", label: "Material POP" },
+    {
+      id: "visitas",
+      label: "Visitas extraordinarias",
+      badge: visitas.filter((v) => v.status === "Pendiente").length,
+    },
+    {
+      id: "material",
+      label: "Material POP",
+      badge: materiales.filter((m) => m.status === "Pendiente").length,
+    },
   ];
 
   return (
@@ -40,10 +47,9 @@ export default function SolicitudesPage() {
           title="Solicitudes"
           actions={
             activeTab === "visitas" ? (
+              /* "Vista de gerencia" button removed: it had no handler and this page already is the
+                 supervision view of the requests. */
               <div className="flex items-center gap-2">
-                <Button variant="secondary" size="sm">
-                  Vista de gerencia
-                </Button>
                 {/* Ocultado temporalmente: acción ejecutada en App Móvil / ERP (SAP/Defontana)
                 <Button size="sm" onClick={() => setIsVisitaOpen(true)}>
                   <Plus className="h-3.5 w-3.5" /> Nueva solicitud

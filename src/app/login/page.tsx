@@ -90,7 +90,7 @@ export default function LoginPage() {
 
         {/* Demo profiles quick selector */}
         <div className="pt-3 border-t border-zinc-100">
-          <p className="text-[11px] font-medium text-zinc-500 text-center mb-2">
+          <p className="text-2xs font-medium text-zinc-500 text-center mb-2">
             Perfiles de acceso demostrativo:
           </p>
           <div className="grid grid-cols-3 gap-1.5">
@@ -139,7 +139,7 @@ export default function LoginPage() {
               </div>
             </button>
           </div>
-          <p className="text-[10px] text-zinc-400 text-center mt-2">
+          <p className="text-3xs text-zinc-400 text-center mt-2">
             Usa el selector para cargar usuario y contraseña automáticamente.
           </p>
         </div>

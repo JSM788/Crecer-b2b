@@ -5,13 +5,17 @@ import Link from "next/link";
 import { SideDrawer } from "@/shared/components/ui/side-drawer";
 import { Button } from "@/shared/components/ui/button";
 import { Badge } from "@/shared/components/ui/badge";
-import { PagoReportado } from "../models/finanzas.model";
+import { PAYMENT_STATUS_LABEL } from "@/modules/comercial/ventas/models/venta.model";
+import { formatCurrency } from "@/shared/lib/utils";
+import { EXTRACTO_MATCH_LABEL, ExtractoMatch, PagoReportado } from "../models/finanzas.model";
 import { CheckCircle2, AlertTriangle, FileText, ExternalLink, Building2 } from "lucide-react";
 
 interface RevisarPagoDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   pago: PagoReportado | null;
+  /** Result of crossing this payment with the imported bank statement, if any. */
+  match?: ExtractoMatch;
   onConciliar: (id: string) => void;
   onObservar: (id: string, motivo: string) => void;
 }
@@ -20,11 +24,13 @@ export const RevisarPagoDrawer: React.FC<RevisarPagoDrawerProps> = ({
   isOpen,
   onClose,
   pago,
+  match,
   onConciliar,
   onObservar,
 }) => {
   const [observacion, setObservacion] = useState("");
   const [isObserving, setIsObserving] = useState(false);
+  const [showVoucher, setShowVoucher] = useState(false);
 
   if (!pago) return null;
 
@@ -33,6 +39,7 @@ export const RevisarPagoDrawer: React.FC<RevisarPagoDrawerProps> = ({
       isOpen={isOpen}
       onClose={() => {
         setIsObserving(false);
+        setShowVoucher(false);
         onClose();
       }}
       title={`Conciliación: ${pago.orderCode}`}
@@ -84,7 +91,7 @@ export const RevisarPagoDrawer: React.FC<RevisarPagoDrawerProps> = ({
                   className="bg-[#27272a] hover:bg-zinc-800 text-white font-medium flex items-center gap-1.5"
                 >
                   <CheckCircle2 className="h-4 w-4" />
-                  Conciliar y Validar
+                  Conciliar pago
                 </Button>
               )
             )}
@@ -106,7 +113,7 @@ export const RevisarPagoDrawer: React.FC<RevisarPagoDrawerProps> = ({
                   : "warning"
               }
             >
-              {pago.status}
+              {PAYMENT_STATUS_LABEL[pago.status]}
             </Badge>
           </div>
           <div className="flex items-center justify-between text-zinc-500">
@@ -116,10 +123,36 @@ export const RevisarPagoDrawer: React.FC<RevisarPagoDrawerProps> = ({
           <div className="pt-2 border-t border-zinc-200 flex items-center justify-between">
             <span className="font-semibold text-zinc-700">Monto reportado:</span>
             <span className="font-extrabold text-base text-zinc-950">
-              S/ {pago.amount.toLocaleString("es-PE", { minimumFractionDigits: 2 })}
+              {formatCurrency(pago.amount)}
             </span>
           </div>
         </div>
+
+        {/* Result of the bank statement cross-check */}
+        {match && (
+          <div
+            className={`p-3 rounded-lg border space-y-1 ${
+              match.status === "coincide" || match.status === "ya_conciliado"
+                ? "bg-emerald-50 border-emerald-200 text-emerald-900"
+                : "bg-amber-50 border-amber-200 text-amber-900"
+            }`}
+          >
+            <p className="font-bold">Extracto: {EXTRACTO_MATCH_LABEL[match.status]}</p>
+            {match.status === "monto_distinto" && match.extractoAmount !== undefined && (
+              <p>
+                El extracto registra {formatCurrency(match.extractoAmount)}; se reportó{" "}
+                {formatCurrency(pago.amount)} (diferencia{" "}
+                {formatCurrency(Math.abs(pago.amount - match.extractoAmount))}).
+              </p>
+            )}
+            {match.status === "no_figura" && (
+              <p>La operación {pago.operationNumber} no aparece en el archivo importado.</p>
+            )}
+            {match.status === "coincide" && (
+              <p>El N° de operación y el monto coinciden con la fila {match.rowNumber} del extracto.</p>
+            )}
+          </div>
+        )}
 
         {/* Bank & Operation Info */}
         <div className="space-y-3">
@@ -164,13 +197,26 @@ export const RevisarPagoDrawer: React.FC<RevisarPagoDrawerProps> = ({
             <div className="pt-1">
               <button
                 type="button"
-                onClick={() => alert(`Visualizando voucher de ${pago.orderCode}`)}
+                onClick={() => setShowVoucher((open) => !open)}
                 className="inline-flex items-center gap-1 text-xs font-semibold text-zinc-800 hover:text-zinc-950 underline underline-offset-2"
               >
-                Abrir comprobante completo
+                {showVoucher ? "Ocultar comprobante" : "Ver comprobante"}
                 <ExternalLink className="h-3 w-3" />
               </button>
             </div>
+
+            {showVoucher && (
+              <div className="mt-2 mx-auto max-w-64 bg-white border border-zinc-200 rounded-md p-3 text-left space-y-1 font-mono text-2xs text-zinc-700 shadow-xs">
+                <p className="font-bold text-zinc-900 text-xs">{pago.paymentMethod}</p>
+                <p>Operación: {pago.operationNumber}</p>
+                <p>Fecha: {pago.dateReported}</p>
+                <p>Cuenta: {pago.bankAccount}</p>
+                <p className="pt-1 border-t border-zinc-200 text-xs font-bold text-zinc-900">
+                  Monto: {formatCurrency(pago.amount)}
+                </p>
+                <p className="text-zinc-400">El comprobante no confirma el pago por sí solo.</p>
+              </div>
+            )}
           </div>
         </div>
 

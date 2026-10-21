@@ -1,5 +1,6 @@
 export interface AgendaSlot {
   id: string;
+  clientId: string;
   timeSlot: string;
   clientName: string;
   seller: string;
@@ -14,12 +15,13 @@ export interface JornadaSummary {
   startTime: string;
   completedVisits: number;
   totalVisits: number;
-  status: "En jornada" | "Interrumpida" | "Sin iniciar";
+  status: "En jornada" | "Interrumpida" | "Sin iniciar" | "Finalizada";
 }
 
 export interface RegistroVisita {
   id: string;
   code: string;
+  clientId: string;
   clientName: string;
   seller: string;
   date: string;

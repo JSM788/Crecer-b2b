@@ -38,7 +38,11 @@ const config: Config = {
         sm: "calc(var(--radius) - 4px)",
       },
       fontSize: {
+        "3xs": ["0.625rem", { lineHeight: "0.75rem" }],
         "2xs": ["0.6875rem", { lineHeight: "0.875rem" }],
+      },
+      maxWidth: {
+        content: "var(--content-max)",
       },
     },
   },

@@ -35,7 +35,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
     >
       <div className="flex flex-wrap items-end gap-3 flex-1">
         {/* Search input with fixed 36px height matching select */}
-        <div className="relative min-w-[260px] max-w-sm flex-1">
+        <div className="relative min-w-64 max-w-sm flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
           <input
             type="text"

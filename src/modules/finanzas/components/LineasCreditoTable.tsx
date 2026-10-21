@@ -5,17 +5,13 @@ import { DataTable, Column } from "@/shared/patterns/DataTable";
 import { FilterBar } from "@/shared/patterns/FilterBar";
 import { Select } from "@/shared/components/ui/select";
 import { Badge } from "@/shared/components/ui/badge";
+import { formatCurrency } from "@/shared/lib/utils";
 import { Button } from "@/shared/components/ui/button";
+import { useDemo } from "@/shared/state/demo-store";
 import { LineaCredito } from "../models/finanzas.model";
 
-interface LineasCreditoTableProps {
-  initialData: LineaCredito[];
-}
-
-export const LineasCreditoTable: React.FC<LineasCreditoTableProps> = ({
-  initialData,
-}) => {
-  const [data, setData] = useState<LineaCredito[]>(initialData);
+export const LineasCreditoTable: React.FC = () => {
+  const { lineas: data, toggleBloqueoLinea } = useDemo();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("Todos");
 
@@ -29,18 +25,7 @@ export const LineasCreditoTable: React.FC<LineasCreditoTableProps> = ({
     return matchesSearch && matchesStatus;
   });
 
-  const handleToggleBloqueo = (id: string) => {
-    setData((prev) =>
-      prev.map((item) =>
-        item.id === id
-          ? {
-              ...item,
-              status: item.status === "Bloqueada" ? "Activa" : "Bloqueada",
-            }
-          : item
-      )
-    );
-  };
+  const handleToggleBloqueo = toggleBloqueoLinea;
 
   const columns: Column<LineaCredito>[] = [
     {
@@ -61,7 +46,7 @@ export const LineasCreditoTable: React.FC<LineasCreditoTableProps> = ({
       width: "15%",
       cell: (row) => (
         <span className="font-semibold text-zinc-900">
-          S/ {row.assignedLimit.toLocaleString("es-PE", { minimumFractionDigits: 2 })}
+          {formatCurrency(row.assignedLimit)}
         </span>
       ),
     },
@@ -71,7 +56,7 @@ export const LineasCreditoTable: React.FC<LineasCreditoTableProps> = ({
       width: "15%",
       cell: (row) => (
         <span className="text-zinc-700 font-medium">
-          S/ {row.usedAmount.toLocaleString("es-PE", { minimumFractionDigits: 2 })}
+          {formatCurrency(row.usedAmount)}
         </span>
       ),
     },
@@ -81,7 +66,7 @@ export const LineasCreditoTable: React.FC<LineasCreditoTableProps> = ({
       width: "15%",
       cell: (row) => (
         <span className="font-extrabold text-emerald-700">
-          S/ {row.availableAmount.toLocaleString("es-PE", { minimumFractionDigits: 2 })}
+          {formatCurrency(row.availableAmount)}
         </span>
       ),
     },

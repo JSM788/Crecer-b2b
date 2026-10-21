@@ -1,5 +1,4 @@
 export * from "./models/finanzas.model";
-export * from "./mocks/finanzas.mock";
 export * from "./components/FinanzasView";
 export * from "./components/ConciliacionPagosTable";
 export * from "./components/RevisarPagoDrawer";

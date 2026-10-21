@@ -9,12 +9,15 @@ interface MasFiltrosDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   onApply: (filters: { seller: string; status: string; lastPurchase: string }) => void;
+  /** Seller names present in the data; the "Todos" option is added here. */
+  sellers: string[];
 }
 
 export const MasFiltrosDrawer: React.FC<MasFiltrosDrawerProps> = ({
   isOpen,
   onClose,
   onApply,
+  sellers,
 }) => {
   const [seller, setSeller] = useState("Todos");
   const [status, setStatus] = useState("Todos");
@@ -59,10 +62,7 @@ export const MasFiltrosDrawer: React.FC<MasFiltrosDrawerProps> = ({
             onChange={(e) => setSeller(e.target.value)}
             options={[
               { label: "Todos los vendedores", value: "Todos" },
-              { label: "Ana Torres", value: "Ana Torres" },
-              { label: "Carlos Rojas", value: "Carlos Rojas" },
-              { label: "Lucía Mendoza", value: "Lucía Mendoza" },
-              { label: "Luis Ramos", value: "Luis Ramos" },
+              ...sellers.map((name) => ({ label: name, value: name })),
             ]}
           />
         </div>

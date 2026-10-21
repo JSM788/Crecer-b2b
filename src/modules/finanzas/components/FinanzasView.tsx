@@ -1,34 +1,39 @@
 "use client";
 
 import React, { useState } from "react";
+import { CheckCircle2, Clock, AlertTriangle, Wallet } from "lucide-react";
 import { PageHeader } from "@/shared/patterns/PageHeader";
 import { Tabs } from "@/shared/components/ui/tabs";
-import { Badge } from "@/shared/components/ui/badge";
+import { formatCurrency } from "@/shared/lib/utils";
+import { useDemo } from "@/shared/state/demo-store";
+import { CUENTAS_POR_COBRAR_MOCK } from "@/mocks/finanzas.mock";
 import { ConciliacionPagosTable } from "./ConciliacionPagosTable";
 import { CuentasPorCobrarTable } from "./CuentasPorCobrarTable";
 import { LineasCreditoTable } from "./LineasCreditoTable";
-import {
-  PAGOS_REPORTADOS_MOCK,
-  CUENTAS_POR_COBRAR_MOCK,
-  LINEAS_CREDITO_MOCK,
-} from "../mocks/finanzas.mock";
-import { CheckCircle2, Clock, AlertTriangle, Wallet } from "lucide-react";
+
+const SCENARIO_DAY = "16 oct. 2026";
 
 export const FinanzasView: React.FC = () => {
   const [activeTab, setActiveTab] = useState("conciliacion");
+  const { pagos, pedidos, clientes } = useDemo();
 
-  // Quick stats
-  const pendientesConciliacion = PAGOS_REPORTADOS_MOCK.filter(
-    (p) => p.status === "Pendiente"
-  ).length;
-  const montoPendiente = PAGOS_REPORTADOS_MOCK.filter((p) => p.status === "Pendiente")
-    .reduce((acc, p) => acc + p.amount, 0);
+  // Quick stats, all derived from the shared store
+  const pagosPendientes = pagos.filter((p) => p.status === "Pendiente");
+  const pendientesConciliacion = pagosPendientes.length;
+  const montoPendiente = pagosPendientes.reduce((acc, p) => acc + p.amount, 0);
 
-  const deudaTotal = CUENTAS_POR_COBRAR_MOCK.reduce((acc, c) => acc + c.totalDebt, 0);
-  const deudaMora = CUENTAS_POR_COBRAR_MOCK.reduce(
-    (acc, c) => acc + c.overdue31to60 + c.overdueMore60,
-    0
-  );
+  const clientesConSaldo = clientes.filter((c) => c.currentDebt > 0);
+  const deudaTotal = clientes.reduce((acc, c) => acc + c.currentDebt, 0);
+  const clientesEnMora = clientes.filter((c) => c.expiredDebt > 0);
+  const deudaVencida = clientesEnMora.reduce((acc, c) => acc + c.expiredDebt, 0);
+
+  const conciliadosHoy = pedidos
+    .filter((pedido) =>
+      pedido.timeline.some((e) => e.title === "Pago conciliado" && e.date === SCENARIO_DAY)
+    )
+    .map((pedido) => pagos.find((p) => p.orderId === pedido.id))
+    .filter((pago): pago is NonNullable<typeof pago> => !!pago && pago.status === "Conciliado");
+  const montoConciliadoHoy = conciliadosHoy.reduce((acc, p) => acc + p.amount, 0);
 
   const tabs = [
     {
@@ -47,7 +52,7 @@ export const FinanzasView: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-5 max-w-[1320px] mx-auto">
+    <div className="space-y-5">
       <PageHeader
         title="Finanzas y Cobranzas"
         subtitle="Conciliación bancaria, liberación de pedidos y control de crédito comercial"
@@ -67,10 +72,11 @@ export const FinanzasView: React.FC = () => {
           <div>
             <p className="text-2xs font-medium text-zinc-500">Por conciliar</p>
             <p className="text-xl font-bold tracking-tight text-zinc-900 mt-0.5">
-              S/ {montoPendiente.toLocaleString("es-PE", { minimumFractionDigits: 2 })}
+              {formatCurrency(montoPendiente)}
             </p>
-            <p className="text-[11px] text-amber-700 font-medium mt-0.5">
-              {pendientesConciliacion} comprobantes pendientes
+            <p className="text-2xs text-amber-700 font-medium mt-0.5">
+              {pendientesConciliacion}{" "}
+              {pendientesConciliacion === 1 ? "comprobante pendiente" : "comprobantes pendientes"}
             </p>
           </div>
         </div>
@@ -83,27 +89,29 @@ export const FinanzasView: React.FC = () => {
           <div>
             <p className="text-2xs font-medium text-zinc-500">Cartera total por cobrar</p>
             <p className="text-xl font-bold tracking-tight text-zinc-900 mt-0.5">
-              S/ {deudaTotal.toLocaleString("es-PE", { minimumFractionDigits: 2 })}
+              {formatCurrency(deudaTotal)}
             </p>
-            <p className="text-[11px] text-zinc-500 mt-0.5">5 clientes con saldo</p>
+            <p className="text-2xs text-zinc-500 mt-0.5">{clientesConSaldo.length} clientes con saldo</p>
           </div>
         </div>
 
-        {/* Card 3: Deuda en mora */}
+        {/* Card 3: Deuda vencida */}
         <div className="bg-white border border-zinc-200/90 rounded-xl p-4 shadow-2xs flex items-center gap-3.5">
           <div className="w-11 h-11 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
             <AlertTriangle className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-2xs font-medium text-zinc-500">Deuda vencida (&gt;30d)</p>
+            <p className="text-2xs font-medium text-zinc-500">Deuda vencida</p>
             <p className="text-xl font-bold tracking-tight text-rose-600 mt-0.5">
-              S/ {deudaMora.toLocaleString("es-PE", { minimumFractionDigits: 2 })}
+              {formatCurrency(deudaVencida)}
             </p>
-            <p className="text-[11px] text-rose-600 font-medium mt-0.5">2 clientes observados</p>
+            <p className="text-2xs text-rose-600 font-medium mt-0.5">
+              {clientesEnMora.length} {clientesEnMora.length === 1 ? "cliente en mora" : "clientes en mora"}
+            </p>
           </div>
         </div>
 
-        {/* Card 4: Conciliados */}
+        {/* Card 4: Conciliados hoy */}
         <div className="bg-white border border-zinc-200/90 rounded-xl p-4 shadow-2xs flex items-center gap-3.5">
           <div className="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
             <CheckCircle2 className="h-5 w-5" />
@@ -111,9 +119,11 @@ export const FinanzasView: React.FC = () => {
           <div>
             <p className="text-2xs font-medium text-zinc-500">Conciliados hoy</p>
             <p className="text-xl font-bold tracking-tight text-emerald-600 mt-0.5">
-              S/ 3,000.00
+              {formatCurrency(montoConciliadoHoy)}
             </p>
-            <p className="text-[11px] text-zinc-500 mt-0.5">2 pedidos validados</p>
+            <p className="text-2xs text-zinc-500 mt-0.5">
+              {conciliadosHoy.length} {conciliadosHoy.length === 1 ? "pago conciliado" : "pagos conciliados"}
+            </p>
           </div>
         </div>
       </div>
@@ -122,17 +132,13 @@ export const FinanzasView: React.FC = () => {
       <div className="space-y-4">
         <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
 
-        {activeTab === "conciliacion" && (
-          <ConciliacionPagosTable initialData={PAGOS_REPORTADOS_MOCK} />
-        )}
+        {activeTab === "conciliacion" && <ConciliacionPagosTable />}
 
         {activeTab === "cuentas-cobrar" && (
           <CuentasPorCobrarTable initialData={CUENTAS_POR_COBRAR_MOCK} />
         )}
 
-        {activeTab === "lineas-credito" && (
-          <LineasCreditoTable initialData={LINEAS_CREDITO_MOCK} />
-        )}
+        {activeTab === "lineas-credito" && <LineasCreditoTable />}
       </div>
     </div>
   );

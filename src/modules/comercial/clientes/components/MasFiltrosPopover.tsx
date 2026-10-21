@@ -1,24 +1,50 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Select } from "@/shared/components/ui/select";
 
+export interface MasFiltrosValue {
+  seller: string;
+  status: string;
+  lastPurchase: string;
+}
+
 interface MasFiltrosPopoverProps {
   isOpen: boolean;
   onClose: () => void;
-  onApply: (filters: { seller: string; status: string; lastPurchase: string }) => void;
+  onApply: (filters: MasFiltrosValue) => void;
+  /** Seller names present in the data; the "Todos" option is added here. */
+  sellers: string[];
+  /** Filters currently applied, so the popover reopens showing them. */
+  current?: MasFiltrosValue;
 }
+
+const DEFAULTS: MasFiltrosValue = {
+  seller: "Todos",
+  status: "Todos",
+  lastPurchase: "Cualquier fecha",
+};
 
 export const MasFiltrosPopover: React.FC<MasFiltrosPopoverProps> = ({
   isOpen,
   onClose,
   onApply,
+  sellers,
+  current = DEFAULTS,
 }) => {
-  const [seller, setSeller] = useState("Todos");
-  const [status, setStatus] = useState("Todos");
-  const [lastPurchase, setLastPurchase] = useState("Cualquier fecha");
+  const [seller, setSeller] = useState(current.seller);
+  const [status, setStatus] = useState(current.status);
+  const [lastPurchase, setLastPurchase] = useState(current.lastPurchase);
+
+  // Sync the draft with the applied filters each time the popover opens.
+  useEffect(() => {
+    if (!isOpen) return;
+    setSeller(current.seller);
+    setStatus(current.status);
+    setLastPurchase(current.lastPurchase);
+  }, [isOpen, current.seller, current.status, current.lastPurchase]);
 
   if (!isOpen) return null;
 
@@ -28,10 +54,10 @@ export const MasFiltrosPopover: React.FC<MasFiltrosPopoverProps> = ({
   };
 
   const handleClear = () => {
-    setSeller("Todos");
-    setStatus("Todos");
-    setLastPurchase("Cualquier fecha");
-    onApply({ seller: "Todos", status: "Todos", lastPurchase: "Cualquier fecha" });
+    setSeller(DEFAULTS.seller);
+    setStatus(DEFAULTS.status);
+    setLastPurchase(DEFAULTS.lastPurchase);
+    onApply(DEFAULTS);
     onClose();
   };
 
@@ -54,7 +80,7 @@ export const MasFiltrosPopover: React.FC<MasFiltrosPopoverProps> = ({
         </div>
 
         {/* Scrollable Body */}
-        <div className="p-4 space-y-3.5 max-h-[320px] overflow-y-auto text-xs">
+        <div className="p-4 space-y-3.5 max-h-80 overflow-y-auto text-xs">
           <div>
             <label className="block text-2xs font-semibold text-zinc-600 mb-1">
               Vendedor
@@ -64,10 +90,7 @@ export const MasFiltrosPopover: React.FC<MasFiltrosPopoverProps> = ({
               onChange={(e) => setSeller(e.target.value)}
               options={[
                 { label: "Todos los vendedores", value: "Todos" },
-                { label: "Ana Torres", value: "Ana Torres" },
-                { label: "Carlos Rojas", value: "Carlos Rojas" },
-                { label: "Lucía Mendoza", value: "Lucía Mendoza" },
-                { label: "Luis Ramos", value: "Luis Ramos" },
+                ...sellers.map((name) => ({ label: name, value: name })),
               ]}
             />
           </div>

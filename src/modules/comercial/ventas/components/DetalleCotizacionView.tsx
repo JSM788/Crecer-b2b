@@ -2,27 +2,52 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, FileText, CheckCircle, AlertCircle, Printer } from "lucide-react";
+import { ArrowLeft, FileText, AlertCircle } from "lucide-react";
 import { PageHeader } from "@/shared/patterns/PageHeader";
 import { Button } from "@/shared/components/ui/button";
 import { Badge } from "@/shared/components/ui/badge";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Tabs } from "@/shared/components/ui/tabs";
 import { formatCurrency } from "@/shared/lib/utils";
+import { useDemo, useLiveCotizacion } from "@/shared/state/demo-store";
 import { Cotizacion } from "../models/venta.model";
+import { quantityMetrics, unitsLabel } from "../lib/metrics";
+import { CotizacionProductosTab } from "./CotizacionProductosTab";
+import { CotizacionHistorialTab } from "./CotizacionHistorialTab";
 
 interface DetalleCotizacionViewProps {
   cotizacion: Cotizacion;
 }
 
-export const DetalleCotizacionView: React.FC<DetalleCotizacionViewProps> = ({ cotizacion }) => {
+export const COTIZACION_STATUS_VARIANT = {
+  Aprobada: "success",
+  Enviada: "info",
+  Borrador: "neutral",
+} as const;
+
+export const DetalleCotizacionView: React.FC<DetalleCotizacionViewProps> = ({
+  cotizacion: seed,
+}) => {
+  const cotizacion = useLiveCotizacion(seed);
+  const { clientes } = useDemo();
   const [activeTab, setActiveTab] = useState("resumen");
+
+  const cliente = clientes.find((c) => c.id === cotizacion.clienteId);
+  const metrics = quantityMetrics(cotizacion.items);
+  const offeredItems = cotizacion.items.filter((item) => item.offeredQty > 0);
 
   const tabs = [
     { id: "resumen", label: "Resumen" },
     { id: "productos", label: "Productos" },
     { id: "historial", label: "Historial" },
   ];
+
+  const showPdfPreview = () => {
+    setActiveTab("resumen");
+    window.setTimeout(() => {
+      document.getElementById("cotizacion-pdf")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
+  };
 
   return (
     <div className="space-y-5">
@@ -37,8 +62,8 @@ export const DetalleCotizacionView: React.FC<DetalleCotizacionViewProps> = ({ co
         subtitle={cotizacion.clienteName}
         actions={
           <div className="flex items-center gap-2.5">
-            <Badge variant="info">{cotizacion.status}</Badge>
-            <Button variant="secondary" size="sm" className="gap-1.5">
+            <Badge variant={COTIZACION_STATUS_VARIANT[cotizacion.status]}>{cotizacion.status}</Badge>
+            <Button variant="secondary" size="sm" className="gap-1.5" onClick={showPdfPreview}>
               <FileText className="h-4 w-4" /> Vista previa PDF
             </Button>
             {/* Ocultado temporalmente: acción ejecutada en App Móvil / ERP (SAP/Defontana)
@@ -52,7 +77,7 @@ export const DetalleCotizacionView: React.FC<DetalleCotizacionViewProps> = ({ co
 
       <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
 
-      {activeTab === "resumen" ? (
+      {activeTab === "resumen" && (
         <div className="space-y-5">
           {/* Top 2 Cards Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
@@ -70,7 +95,9 @@ export const DetalleCotizacionView: React.FC<DetalleCotizacionViewProps> = ({ co
                   </div>
                   <div className="flex justify-between">
                     <span className="text-zinc-500">Fecha de emisión</span>
-                    <span className="text-zinc-800">{cotizacion.date}</span>
+                    <span className="text-zinc-800">
+                      {cotizacion.date} · {cotizacion.time}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-zinc-500">Válida hasta</span>
@@ -78,11 +105,26 @@ export const DetalleCotizacionView: React.FC<DetalleCotizacionViewProps> = ({ co
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-zinc-500">Estado</span>
-                    <Badge variant="info">{cotizacion.status}</Badge>
+                    <Badge variant={COTIZACION_STATUS_VARIANT[cotizacion.status]}>
+                      {cotizacion.status}
+                    </Badge>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-zinc-500">Ejecutiva comercial</span>
+                    <span className="text-zinc-500">Vendedor</span>
                     <span className="text-zinc-800">{cotizacion.seller}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-zinc-500">Pedido relacionado</span>
+                    {cotizacion.pedidoCode ? (
+                      <Link
+                        href={`/comercial/ventas/pedidos/${cotizacion.pedidoCode.toLowerCase()}/`}
+                        className="font-semibold text-zinc-900 hover:underline"
+                      >
+                        {cotizacion.pedidoCode}
+                      </Link>
+                    ) : (
+                      <span className="text-zinc-800">Sin convertir</span>
+                    )}
                   </div>
                 </div>
               </CardContent>
@@ -98,15 +140,19 @@ export const DetalleCotizacionView: React.FC<DetalleCotizacionViewProps> = ({ co
                 <div className="space-y-2 text-xs">
                   <div className="flex justify-between text-zinc-600">
                     <span>Cantidad solicitada</span>
-                    <span className="font-medium">10</span>
+                    <span className="font-medium">{unitsLabel(metrics.requested)}</span>
                   </div>
                   <div className="flex justify-between text-zinc-600">
                     <span>Cantidad ofrecida</span>
-                    <span className="font-medium">8</span>
+                    <span className="font-medium">{unitsLabel(metrics.offered)}</span>
                   </div>
                   <div className="flex justify-between text-zinc-600">
                     <span>Cantidad no atendida</span>
-                    <span className="font-medium text-amber-600">2</span>
+                    <span
+                      className={`font-medium ${metrics.unattended > 0 ? "text-amber-600" : ""}`}
+                    >
+                      {unitsLabel(metrics.unattended)}
+                    </span>
                   </div>
                   <div className="flex justify-between items-baseline font-bold text-sm text-zinc-900 pt-3 border-t border-zinc-100">
                     <span>Total cotizado</span>
@@ -120,7 +166,7 @@ export const DetalleCotizacionView: React.FC<DetalleCotizacionViewProps> = ({ co
           {/* PDF Preview & Note */}
           <Card>
             <CardContent className="p-5 space-y-4">
-              <h3 className="text-xs font-semibold text-zinc-900">
+              <h3 id="cotizacion-pdf" className="text-xs font-semibold text-zinc-900 scroll-mt-4">
                 Vista previa del PDF
               </h3>
 
@@ -138,9 +184,9 @@ export const DetalleCotizacionView: React.FC<DetalleCotizacionViewProps> = ({ co
                   </div>
 
                   <div className="text-2xs text-zinc-600 space-y-0.5">
-                    <p className="font-bold text-zinc-900">Cliente: Pet Market</p>
-                    <p>RUC 20123456789</p>
-                    <p>Av. San Borja Norte 1234, San Borja, Lima</p>
+                    <p className="font-bold text-zinc-900">Cliente: {cotizacion.clienteName}</p>
+                    {cliente && <p>RUC {cliente.ruc}</p>}
+                    {cliente && <p>{cliente.address}</p>}
                   </div>
 
                   <div className="border border-zinc-100 rounded overflow-hidden">
@@ -154,12 +200,16 @@ export const DetalleCotizacionView: React.FC<DetalleCotizacionViewProps> = ({ co
                         </tr>
                       </thead>
                       <tbody>
-                        <tr>
-                          <td className="px-2 py-2 font-medium">Bravery Adulto 7 kg</td>
-                          <td className="px-2 py-2 text-center">8</td>
-                          <td className="px-2 py-2 text-right">S/ 180</td>
-                          <td className="px-2 py-2 text-right font-bold">S/ 1,440</td>
-                        </tr>
+                        {offeredItems.map((item) => (
+                          <tr key={item.productoId}>
+                            <td className="px-2 py-2 font-medium">{item.name}</td>
+                            <td className="px-2 py-2 text-center">{item.offeredQty}</td>
+                            <td className="px-2 py-2 text-right">{formatCurrency(item.unitPrice)}</td>
+                            <td className="px-2 py-2 text-right font-bold">
+                              {formatCurrency(item.total)}
+                            </td>
+                          </tr>
+                        ))}
                       </tbody>
                     </table>
                   </div>
@@ -175,12 +225,8 @@ export const DetalleCotizacionView: React.FC<DetalleCotizacionViewProps> = ({ co
                 <div className="p-4 bg-zinc-50 border border-zinc-200 rounded-lg flex items-start gap-2.5 text-2xs text-zinc-600 self-start">
                   <AlertCircle className="h-5 w-5 text-zinc-500 shrink-0 mt-0.5" />
                   <div className="space-y-1">
-                    <p className="font-bold text-zinc-900">
-                      Esta cotización NO reserva stock físico.
-                    </p>
-                    <p>
-                      El stock estará sujeto a disponibilidad al momento de generar el pedido y confirmar el pago.
-                    </p>
+                    <p className="font-bold text-zinc-900">Esta cotización no reserva stock.</p>
+                    <p>La disponibilidad se revalidará al convertirla a pedido.</p>
                   </div>
                 </div>
               </div>
@@ -196,14 +242,10 @@ export const DetalleCotizacionView: React.FC<DetalleCotizacionViewProps> = ({ co
             </Link>
           </div>
         </div>
-      ) : (
-        <Card>
-          <CardContent className="p-12 text-center text-zinc-400">
-            <p className="text-sm font-medium text-zinc-600">Sección en preparación</p>
-            <p className="text-xs mt-1">El detalle de {activeTab} se encuentra disponible en el resumen.</p>
-          </CardContent>
-        </Card>
       )}
+
+      {activeTab === "productos" && <CotizacionProductosTab cotizacion={cotizacion} />}
+      {activeTab === "historial" && <CotizacionHistorialTab cotizacion={cotizacion} />}
     </div>
   );
 };

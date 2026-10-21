@@ -1,11 +1,14 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import Link from "next/link";
 import { Eye, Filter, Search } from "lucide-react";
 import { DataTable, Column } from "@/shared/patterns/DataTable";
 import { Select } from "@/shared/components/ui/select";
 import { Button } from "@/shared/components/ui/button";
+import { optionsFrom } from "@/shared/lib/options";
+import { toSortKey } from "@/shared/lib/date";
+import { SCENARIO_DAY, clienteTieneFicha, useSellerNames } from "@/shared/state/demo-store";
 import { Cliente } from "../models/cliente.model";
 import { MasFiltrosPopover } from "./MasFiltrosPopover";
 
@@ -13,14 +16,38 @@ interface ClientesCarteraTableProps {
   clientes: Cliente[];
 }
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** "Última compra" filter, measured against the scenario day. */
+function matchesLastPurchase(cliente: Cliente, filter: string): boolean {
+  if (filter === "Cualquier fecha") return true;
+  const last = toSortKey(cliente.lastPurchaseDate);
+  const days = last ? (toSortKey(SCENARIO_DAY) - last) / DAY_MS : Infinity;
+  if (filter === "7_dias") return days <= 7;
+  if (filter === "30_dias") return days <= 30;
+  if (filter === "3_meses") return days > 90;
+  return true;
+}
+
 export const ClientesCarteraTable: React.FC<ClientesCarteraTableProps> = ({ clientes }) => {
+  const sellers = useSellerNames();
   const [search, setSearch] = useState("");
   const [district, setDistrict] = useState("Todos");
   const [isMoreFiltersOpen, setIsMoreFiltersOpen] = useState(false);
-  const [extraFilters, setExtraFilters] = useState<{ seller: string; status: string }>({
+  const [extraFilters, setExtraFilters] = useState<{
+    seller: string;
+    status: string;
+    lastPurchase: string;
+  }>({
     seller: "Todos",
     status: "Todos",
+    lastPurchase: "Cualquier fecha",
   });
+
+  const districtOptions = useMemo(
+    () => optionsFrom(clientes.map((c) => c.district), "Todos los distritos"),
+    [clientes]
+  );
 
   const filteredData = clientes.filter((c) => {
     const matchesSearch =
@@ -33,7 +60,13 @@ export const ClientesCarteraTable: React.FC<ClientesCarteraTableProps> = ({ clie
     const matchesStatus =
       extraFilters.status === "Todos" || c.condition === extraFilters.status;
 
-    return matchesSearch && matchesDistrict && matchesSeller && matchesStatus;
+    return (
+      matchesSearch &&
+      matchesDistrict &&
+      matchesSeller &&
+      matchesStatus &&
+      matchesLastPurchase(c, extraFilters.lastPurchase)
+    );
   });
 
   const columns: Column<Cliente>[] = [
@@ -43,12 +76,16 @@ export const ClientesCarteraTable: React.FC<ClientesCarteraTableProps> = ({ clie
       width: "30%",
       cell: (row) => (
         <div>
-          <Link
-            href={`/comercial/clientes/${row.id}/`}
-            className="font-semibold text-zinc-900 hover:underline block"
-          >
-            {row.name}
-          </Link>
+          {clienteTieneFicha(row.id) ? (
+            <Link
+              href={`/comercial/clientes/${row.id}/`}
+              className="font-semibold text-zinc-900 hover:underline block"
+            >
+              {row.name}
+            </Link>
+          ) : (
+            <span className="font-semibold text-zinc-900 block">{row.name}</span>
+          )}
           <span className="text-2xs text-zinc-400 font-normal">RUC {row.ruc}</span>
         </div>
       ),
@@ -88,16 +125,25 @@ export const ClientesCarteraTable: React.FC<ClientesCarteraTableProps> = ({ clie
       header: "Acción",
       width: "12%",
       className: "text-right",
-      cell: (row) => (
-        <Link
-          href={`/comercial/clientes/${row.id}/`}
-          className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:text-zinc-950 bg-zinc-100 hover:bg-zinc-200/90 rounded-md transition-colors"
-          title="Ver ficha"
-        >
-          <Eye className="h-3.5 w-3.5 text-zinc-600" />
-          <span>Ver ficha</span>
-        </Link>
-      ),
+      cell: (row) =>
+        clienteTieneFicha(row.id) ? (
+          <Link
+            href={`/comercial/clientes/${row.id}/`}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:text-zinc-950 bg-zinc-100 hover:bg-zinc-200/90 rounded-md transition-colors"
+            title="Ver ficha"
+          >
+            <Eye className="h-3.5 w-3.5 text-zinc-600" />
+            <span>Ver ficha</span>
+          </Link>
+        ) : (
+          // Clients created at runtime have no static ficha page in this static export.
+          <span
+            className="inline-flex items-center px-2.5 py-1 text-2xs font-medium text-zinc-400 bg-zinc-50 rounded-md cursor-not-allowed"
+            title="Cliente nuevo: la ficha estará disponible al sincronizar con el ERP"
+          >
+            Ficha pendiente
+          </span>
+        ),
     },
   ];
 
@@ -106,7 +152,7 @@ export const ClientesCarteraTable: React.FC<ClientesCarteraTableProps> = ({ clie
       {/* Filter Row: perfectly baseline aligned using items-end */}
       <div className="flex flex-wrap items-end gap-3 py-1">
         {/* Search input */}
-        <div className="relative min-w-[260px] max-w-sm flex-1">
+        <div className="relative min-w-64 max-w-sm flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
           <input
             type="text"
@@ -123,13 +169,7 @@ export const ClientesCarteraTable: React.FC<ClientesCarteraTableProps> = ({ clie
             label="Distrito"
             value={district}
             onChange={(e) => setDistrict(e.target.value)}
-            options={[
-              { label: "Todos los distritos", value: "Todos" },
-              { label: "San Borja", value: "San Borja" },
-              { label: "Miraflores", value: "Miraflores" },
-              { label: "Santiago de Surco", value: "Santiago de Surco" },
-              { label: "San Miguel", value: "San Miguel" },
-            ]}
+            options={districtOptions}
           />
         </div>
 
@@ -149,7 +189,11 @@ export const ClientesCarteraTable: React.FC<ClientesCarteraTableProps> = ({ clie
           <MasFiltrosPopover
             isOpen={isMoreFiltersOpen}
             onClose={() => setIsMoreFiltersOpen(false)}
-            onApply={(f) => setExtraFilters({ seller: f.seller, status: f.status })}
+            sellers={sellers}
+            current={extraFilters}
+            onApply={(f) =>
+              setExtraFilters({ seller: f.seller, status: f.status, lastPurchase: f.lastPurchase })
+            }
           />
         </div>
       </div>

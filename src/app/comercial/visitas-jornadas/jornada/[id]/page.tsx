@@ -1,4 +1,5 @@
 import React from "react";
+import { notFound } from "next/navigation";
 import { DashboardShell } from "@/shared/layout/DashboardShell";
 import { getJornadas, DetalleJornadaView } from "@/modules/comercial/visitas-jornadas";
 
@@ -9,10 +10,13 @@ export function generateStaticParams() {
   }));
 }
 
-export default function DetalleJornadaPage() {
+export default function DetalleJornadaPage({ params }: { params: { id: string } }) {
+  const jornada = getJornadas().find((j) => j.id === params.id);
+  if (!jornada) notFound();
+
   return (
     <DashboardShell>
-      <DetalleJornadaView />
+      <DetalleJornadaView jornada={jornada} />
     </DashboardShell>
   );
 }

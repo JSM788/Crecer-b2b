@@ -8,6 +8,8 @@ export interface VisitaExtraordinaria {
   date: string;
   hour: string;
   justification: string;
+  /** Supervisor's note saved when the request is approved or rejected. */
+  decisionNotes?: string;
 }
 
 export interface MaterialPOP {
@@ -20,4 +22,6 @@ export interface MaterialPOP {
   status: "Pendiente" | "Aprobada" | "Rechazada";
   reason: string;
   observations: string;
+  /** Supervisor's note saved when the request is approved or rejected. */
+  decisionNotes?: string;
 }

@@ -2,22 +2,24 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { Calendar } from "lucide-react";
 import { DataTable, Column } from "@/shared/patterns/DataTable";
 import { FilterBar } from "@/shared/patterns/FilterBar";
 import { Select } from "@/shared/components/ui/select";
 import { Button } from "@/shared/components/ui/button";
 import { Badge } from "@/shared/components/ui/badge";
 import { formatCurrency } from "@/shared/lib/utils";
-import { Pedido } from "../models/venta.model";
+import { optionsFrom } from "@/shared/lib/options";
+import { useDemo } from "@/shared/state/demo-store";
+import {
+  PAYMENT_STATUS_LABEL,
+  Pedido,
+  RESERVATION_STATUS_LABEL,
+} from "../models/venta.model";
 
-interface PedidosTableProps {
-  pedidos: Pedido[];
-}
-
-export const PedidosTable: React.FC<PedidosTableProps> = ({ pedidos }) => {
+export const PedidosTable: React.FC = () => {
+  const { pedidos } = useDemo();
   const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("Todos");
+  const [paymentFilter, setPaymentFilter] = useState("Todos");
   const [seller, setSeller] = useState("Todos");
 
   const filtered = pedidos.filter((p) => {
@@ -25,9 +27,10 @@ export const PedidosTable: React.FC<PedidosTableProps> = ({ pedidos }) => {
       !search ||
       p.code.toLowerCase().includes(search.toLowerCase()) ||
       p.clienteName.toLowerCase().includes(search.toLowerCase());
+    const matchesPayment = paymentFilter === "Todos" || p.paymentStatus === paymentFilter;
     const matchesSeller = seller === "Todos" || p.seller === seller;
 
-    return matchesSearch && matchesSeller;
+    return matchesSearch && matchesPayment && matchesSeller;
   });
 
   const columns: Column<Pedido>[] = [
@@ -49,6 +52,14 @@ export const PedidosTable: React.FC<PedidosTableProps> = ({ pedidos }) => {
       cell: (row) => <span className="font-medium text-zinc-900">{row.clienteName}</span>,
     },
     {
+      header: "Vendedor",
+      accessorKey: "seller",
+    },
+    {
+      header: "Fecha",
+      accessorKey: "date",
+    },
+    {
       header: "Total",
       cell: (row) => (
         <span className="font-semibold text-zinc-900">{formatCurrency(row.total)}</span>
@@ -57,8 +68,16 @@ export const PedidosTable: React.FC<PedidosTableProps> = ({ pedidos }) => {
     {
       header: "Pago",
       cell: (row) => (
-        <Badge variant={row.paymentStatus === "Conciliado" ? "success" : "warning"}>
-          {row.paymentStatus}
+        <Badge
+          variant={
+            row.paymentStatus === "Conciliado"
+              ? "success"
+              : row.paymentStatus === "Observado"
+              ? "danger"
+              : "warning"
+          }
+        >
+          {PAYMENT_STATUS_LABEL[row.paymentStatus]}
         </Badge>
       ),
     },
@@ -66,7 +85,7 @@ export const PedidosTable: React.FC<PedidosTableProps> = ({ pedidos }) => {
       header: "Reserva",
       cell: (row) => (
         <Badge variant={row.reservationStatus === "Confirmada" ? "success" : "warning"}>
-          {row.reservationStatus}
+          {RESERVATION_STATUS_LABEL[row.reservationStatus]}
         </Badge>
       ),
     },
@@ -90,15 +109,16 @@ export const PedidosTable: React.FC<PedidosTableProps> = ({ pedidos }) => {
         onSearchChange={setSearch}
         searchPlaceholder="Buscar pedidos, cliente..."
       >
-        <div className="w-36">
+        <div className="w-44">
           <Select
-            label="Estado"
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
+            label="Pago"
+            value={paymentFilter}
+            onChange={(e) => setPaymentFilter(e.target.value)}
             options={[
               { label: "Todos", value: "Todos" },
-              { label: "Pendiente", value: "Pendiente" },
-              { label: "Conciliado", value: "Conciliado" },
+              { label: PAYMENT_STATUS_LABEL.Pendiente, value: "Pendiente" },
+              { label: PAYMENT_STATUS_LABEL.Conciliado, value: "Conciliado" },
+              { label: PAYMENT_STATUS_LABEL.Observado, value: "Observado" },
             ]}
           />
         </div>
@@ -108,17 +128,8 @@ export const PedidosTable: React.FC<PedidosTableProps> = ({ pedidos }) => {
             label="Vendedor"
             value={seller}
             onChange={(e) => setSeller(e.target.value)}
-            options={[
-              { label: "Todos", value: "Todos" },
-              { label: "Ana Torres", value: "Ana Torres" },
-              { label: "Luis Ramos", value: "Luis Ramos" },
-            ]}
+            options={optionsFrom(pedidos.map((p) => p.seller))}
           />
-        </div>
-
-        <div className="flex items-center gap-2 px-3 py-1.5 border border-zinc-200 rounded-md text-xs font-medium bg-white text-zinc-800 self-end h-9">
-          <Calendar className="h-4 w-4 text-zinc-500" />
-          <span>10 mar. 2025 - 16 mar. 2025</span>
         </div>
       </FilterBar>
 

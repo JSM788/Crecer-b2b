@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "@/styles/globals.css";
 import { AuthProvider } from "@/shared/lib/auth-context";
+import { DemoStoreProvider } from "@/shared/state/demo-store";
 
 export const metadata: Metadata = {
   title: "Aquamundo — Plataforma B2B Comercial",
@@ -15,7 +16,9 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body className="antialiased">
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <DemoStoreProvider>{children}</DemoStoreProvider>
+        </AuthProvider>
       </body>
     </html>
   );

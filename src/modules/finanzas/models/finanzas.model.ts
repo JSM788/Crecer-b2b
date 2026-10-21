@@ -1,7 +1,10 @@
+export type PagoStatus = "Pendiente" | "Conciliado" | "Observado";
+
 export interface PagoReportado {
   id: string;
   orderCode: string;
   orderId: string;
+  clientId: string;
   clientName: string;
   clientRuc: string;
   seller: string;
@@ -9,7 +12,7 @@ export interface PagoReportado {
   paymentMethod: "Transferencia BCP" | "Transferencia BBVA" | "Interbank" | "Depósito en efectivo";
   operationNumber: string;
   dateReported: string;
-  status: "Pendiente" | "Conciliado" | "Observado";
+  status: PagoStatus;
   voucherUrl?: string;
   bankAccount: string;
   notes?: string;
@@ -45,3 +48,43 @@ export interface LineaCredito {
   approvedDate: string;
   evaluatedBy: string;
 }
+
+/** One row of the bank statement ("extracto") uploaded by Finanzas. */
+export interface ExtractoRow {
+  rowNumber: number;
+  date: string;
+  bank: string;
+  operationNumber: string;
+  description: string;
+  amount: number;
+}
+
+export type ExtractoMatchStatus =
+  | "coincide"
+  | "monto_distinto"
+  | "no_figura"
+  | "ya_conciliado";
+
+export interface ExtractoMatch {
+  status: ExtractoMatchStatus;
+  /** Amount found in the statement for the same operation, when any. */
+  extractoAmount?: number;
+  rowNumber?: number;
+}
+
+export interface ExtractoImport {
+  fileName: string;
+  /** Display date-time of the import, e.g. "16 oct. 2026, 10:30". */
+  importedAt: string;
+  totalRows: number;
+  /** Statement rows that match no reported payment. */
+  unmatchedRows: ExtractoRow[];
+  matches: Record<string, ExtractoMatch>;
+}
+
+export const EXTRACTO_MATCH_LABEL: Record<ExtractoMatchStatus, string> = {
+  coincide: "Coincide",
+  monto_distinto: "Monto distinto",
+  no_figura: "No figura en el extracto",
+  ya_conciliado: "Ya conciliado",
+};

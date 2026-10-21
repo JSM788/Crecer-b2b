@@ -1,66 +1,46 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import Link from "next/link";
 import { Info, Search } from "lucide-react";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Input } from "@/shared/components/ui/input";
 import { Select } from "@/shared/components/ui/select";
+import { PAYMENT_STATUS_LABEL } from "@/modules/comercial/ventas/models/venta.model";
+import { formatCurrency } from "@/shared/lib/utils";
+import { useDemo } from "@/shared/state/demo-store";
 import { Cliente } from "../models/cliente.model";
+import { getFacturasPendientes } from "../services/cliente.service";
 
 interface ClienteCreditoTabProps {
   cliente: Cliente;
 }
 
-interface DocumentoPendiente {
-  id: string;
-  code: string;
-  emision: string;
-  vencimiento: string;
-  importe: number;
-  saldoPendiente: number;
-  estado: "Por vencer" | "Vencido";
-}
-
-const DOCUMENTOS_PENDIENTES: DocumentoPendiente[] = [
-  {
-    id: "doc-1",
-    code: "F001-00871",
-    emision: "01 oct. 2026",
-    vencimiento: "31 oct. 2026",
-    importe: 1600,
-    saldoPendiente: 1600,
-    estado: "Por vencer",
-  },
-  {
-    id: "doc-2",
-    code: "F001-00902",
-    emision: "10 oct. 2026",
-    vencimiento: "09 nov. 2026",
-    importe: 1000,
-    saldoPendiente: 1000,
-    estado: "Por vencer",
-  },
-];
+/** Time of the last SAP read shown across the credit screens. */
+const SAP_LAST_SYNC = "16 oct. 2026, 09:00";
 
 export const ClienteCreditoTab: React.FC<ClienteCreditoTabProps> = ({ cliente }) => {
+  const { pagos } = useDemo();
   const [searchDoc, setSearchDoc] = useState("");
   const [vencimientoFilter, setVencimientoFilter] = useState("Todos");
 
-  const creditLimit = cliente?.creditLimit ?? 5000;
-  const currentDebt = cliente?.currentDebt ?? 2600;
-  const availableCredit = cliente?.availableCredit ?? Math.max(0, creditLimit - currentDebt);
-  const expiredDebt = cliente?.expiredDebt ?? 0;
-  const condition = cliente?.condition ?? "Al día";
+  const { creditLimit, currentDebt, availableCredit, expiredDebt, condition } = cliente;
+  const usedPercent = creditLimit > 0 ? Math.round((currentDebt / creditLimit) * 100) : 0;
 
-  const usedPercent = creditLimit > 0 ? Math.round((currentDebt / creditLimit) * 100) : 52;
-
-  const filteredDocs = DOCUMENTOS_PENDIENTES.filter((doc) => {
+  const documentos = useMemo(() => getFacturasPendientes(cliente.id), [cliente.id]);
+  const filteredDocs = documentos.filter((doc) => {
     const matchesSearch = !searchDoc || doc.code.toLowerCase().includes(searchDoc.toLowerCase());
-    return matchesSearch;
+    const matchesDue =
+      vencimientoFilter === "Todos" ||
+      (vencimientoFilter === "Por vencer" ? doc.estado === "Por vencer" : doc.estado === "Vencido");
+    return matchesSearch && matchesDue;
   });
-
   const totalSaldoPendiente = filteredDocs.reduce((acc, curr) => acc + curr.saldoPendiente, 0);
+
+  // Payments reported by the field team that Finanzas has not confirmed yet.
+  const pagosEnVerificacion = pagos.filter(
+    (p) => p.clientId === cliente.id && p.status !== "Conciliado"
+  );
 
   return (
     <div className="space-y-5">
@@ -72,7 +52,7 @@ export const ClienteCreditoTab: React.FC<ClienteCreditoTabProps> = ({ cliente })
           </div>
           <span>
             <strong className="text-zinc-900">Información de SAP Business One</strong> · Última
-            sincronización: 16 oct. 2026, 15:45
+            sincronización: {SAP_LAST_SYNC}
           </span>
         </div>
 
@@ -83,23 +63,17 @@ export const ClienteCreditoTab: React.FC<ClienteCreditoTabProps> = ({ cliente })
 
       {/* 4 KPI Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Línea de crédito */}
         <Card className="shadow-xs border-zinc-200">
           <CardContent className="p-4 space-y-1">
             <p className="text-2xs font-medium text-zinc-500">Línea de crédito</p>
-            <p className="text-xl font-bold text-zinc-950">
-              S/ {creditLimit.toLocaleString("es-PE", { minimumFractionDigits: 0 })}
-            </p>
+            <p className="text-xl font-bold text-zinc-950">{formatCurrency(creditLimit)}</p>
           </CardContent>
         </Card>
 
-        {/* Card 2: Crédito utilizado */}
         <Card className="shadow-xs border-zinc-200">
           <CardContent className="p-4 space-y-1.5">
             <p className="text-2xs font-medium text-zinc-500">Crédito utilizado</p>
-            <p className="text-xl font-bold text-zinc-950">
-              S/ {currentDebt.toLocaleString("es-PE", { minimumFractionDigits: 0 })}
-            </p>
+            <p className="text-xl font-bold text-zinc-950">{formatCurrency(currentDebt)}</p>
             <div className="space-y-1 pt-0.5">
               <div className="flex items-center gap-2">
                 <div className="flex-1 h-2 bg-zinc-100 rounded-full overflow-hidden">
@@ -115,22 +89,18 @@ export const ClienteCreditoTab: React.FC<ClienteCreditoTabProps> = ({ cliente })
           </CardContent>
         </Card>
 
-        {/* Card 3: Crédito disponible */}
         <Card className="shadow-xs border-zinc-200">
           <CardContent className="p-4 space-y-1">
             <p className="text-2xs font-medium text-zinc-500">Crédito disponible</p>
-            <p className="text-xl font-bold text-zinc-950">
-              S/ {availableCredit.toLocaleString("es-PE", { minimumFractionDigits: 0 })}
-            </p>
+            <p className="text-xl font-bold text-zinc-950">{formatCurrency(availableCredit)}</p>
           </CardContent>
         </Card>
 
-        {/* Card 4: Deuda vencida */}
         <Card className="shadow-xs border-zinc-200">
           <CardContent className="p-4 space-y-1">
             <p className="text-2xs font-medium text-zinc-500">Deuda vencida</p>
-            <p className="text-xl font-bold text-zinc-950">
-              S/ {expiredDebt.toLocaleString("es-PE", { minimumFractionDigits: 0 })}
+            <p className={`text-xl font-bold ${expiredDebt > 0 ? "text-rose-600" : "text-zinc-950"}`}>
+              {formatCurrency(expiredDebt)}
             </p>
           </CardContent>
         </Card>
@@ -140,7 +110,11 @@ export const ClienteCreditoTab: React.FC<ClienteCreditoTabProps> = ({ cliente })
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-4 py-3 bg-white border border-zinc-200 rounded-lg">
         <div className="flex items-center gap-2.5">
           <span className="text-xs text-zinc-600 font-medium">Estado de crédito</span>
-          <span className="px-3 py-0.5 rounded-full text-2xs font-bold bg-zinc-200 text-zinc-900">
+          <span
+            className={`px-3 py-0.5 rounded-full text-2xs font-bold ${
+              condition === "Con atraso" ? "bg-rose-100 text-rose-800" : "bg-zinc-200 text-zinc-900"
+            }`}
+          >
             {condition}
           </span>
         </div>
@@ -167,7 +141,7 @@ export const ClienteCreditoTab: React.FC<ClienteCreditoTabProps> = ({ cliente })
                 />
               </div>
 
-              <div className="w-40">
+              <div className="w-44">
                 <Select
                   value={vencimientoFilter}
                   onChange={(e) => setVencimientoFilter(e.target.value)}
@@ -194,20 +168,37 @@ export const ClienteCreditoTab: React.FC<ClienteCreditoTabProps> = ({ cliente })
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100 bg-white">
+                {filteredDocs.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="py-6 text-center text-zinc-400">
+                      {documentos.length === 0
+                        ? "Este cliente no tiene documentos pendientes."
+                        : "No hay documentos con los filtros seleccionados."}
+                    </td>
+                  </tr>
+                )}
                 {filteredDocs.map((doc) => (
                   <tr key={doc.id} className="hover:bg-zinc-50/70 transition-colors">
                     <td className="py-3 px-3 font-semibold text-zinc-900">{doc.code}</td>
                     <td className="py-3 px-3 text-zinc-600">{doc.emision}</td>
                     <td className="py-3 px-3 text-zinc-600">{doc.vencimiento}</td>
-                    <td className="py-3 px-3 text-zinc-800">
-                      S/ {doc.importe.toLocaleString("es-PE", { minimumFractionDigits: 0 })}
-                    </td>
+                    <td className="py-3 px-3 text-zinc-800">{formatCurrency(doc.importe)}</td>
                     <td className="py-3 px-3 font-semibold text-zinc-900">
-                      S/ {doc.saldoPendiente.toLocaleString("es-PE", { minimumFractionDigits: 0 })}
+                      {formatCurrency(doc.saldoPendiente)}
                     </td>
                     <td className="py-3 px-3">
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-2xs font-medium bg-zinc-100 text-zinc-800 border border-zinc-200">
-                        <span className="w-1.5 h-1.5 rounded-full bg-zinc-700" />
+                      <span
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-2xs font-medium border ${
+                          doc.estado === "Vencido"
+                            ? "bg-rose-50 text-rose-800 border-rose-200"
+                            : "bg-zinc-100 text-zinc-800 border-zinc-200"
+                        }`}
+                      >
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            doc.estado === "Vencido" ? "bg-rose-600" : "bg-zinc-700"
+                          }`}
+                        />
                         {doc.estado}
                       </span>
                     </td>
@@ -220,7 +211,7 @@ export const ClienteCreditoTab: React.FC<ClienteCreditoTabProps> = ({ cliente })
                     Saldo pendiente total
                   </td>
                   <td colSpan={2} className="py-2.5 px-3 text-base font-bold text-zinc-950">
-                    S/ {totalSaldoPendiente.toLocaleString("es-PE", { minimumFractionDigits: 0 })}
+                    {formatCurrency(totalSaldoPendiente)}
                   </td>
                 </tr>
               </tfoot>
@@ -252,26 +243,43 @@ export const ClienteCreditoTab: React.FC<ClienteCreditoTabProps> = ({ cliente })
                   <th className="py-2.5 px-3">Observación</th>
                 </tr>
               </thead>
-              <tbody className="bg-white">
-                <tr className="hover:bg-zinc-50/70 transition-colors">
-                  <td className="py-3 px-3 font-semibold text-zinc-900">OP 845219 · BCP</td>
-                  <td className="py-3 px-3 text-zinc-600">15 oct. 2026</td>
-                  <td className="py-3 px-3 font-semibold text-zinc-900">S/ 1,440</td>
-                  <td className="py-3 px-3 text-zinc-900 font-medium">
-                    <Link href="/comercial/ventas/pedidos/ped-1042/" className="hover:underline">
-                      PED-1042
-                    </Link>
-                  </td>
-                  <td className="py-3 px-3">
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-2xs font-medium bg-zinc-100 text-zinc-800 border border-zinc-200">
-                      <span className="w-1.5 h-1.5 rounded-full bg-zinc-700" />
-                      Esperando archivo
-                    </span>
-                  </td>
-                  <td className="py-3 px-3 text-2xs text-zinc-500">
-                    Pago reportado en la plataforma. Aún no confirmado ni aplicado en SAP.
-                  </td>
-                </tr>
+              <tbody className="divide-y divide-zinc-100 bg-white">
+                {pagosEnVerificacion.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="py-6 text-center text-zinc-400">
+                      No hay pagos pendientes de verificación.
+                    </td>
+                  </tr>
+                )}
+                {pagosEnVerificacion.map((pago) => (
+                  <tr key={pago.id} className="hover:bg-zinc-50/70 transition-colors">
+                    <td className="py-3 px-3 font-semibold text-zinc-900">
+                      OP {pago.operationNumber} · {pago.paymentMethod.replace("Transferencia ", "")}
+                    </td>
+                    <td className="py-3 px-3 text-zinc-600">{pago.dateReported}</td>
+                    <td className="py-3 px-3 font-semibold text-zinc-900">{formatCurrency(pago.amount)}</td>
+                    <td className="py-3 px-3 text-zinc-900 font-medium">
+                      <Link href={`/comercial/ventas/pedidos/${pago.orderId}/`} className="hover:underline">
+                        {pago.orderCode}
+                      </Link>
+                    </td>
+                    <td className="py-3 px-3">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-2xs font-medium bg-zinc-100 text-zinc-800 border border-zinc-200">
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            pago.status === "Observado" ? "bg-rose-600" : "bg-zinc-700"
+                          }`}
+                        />
+                        {PAYMENT_STATUS_LABEL[pago.status]}
+                      </span>
+                    </td>
+                    <td className="py-3 px-3 text-2xs text-zinc-500">
+                      {pago.status === "Observado"
+                        ? pago.notes
+                        : "Pago reportado en la plataforma. Aún no confirmado ni aplicado en SAP."}
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>

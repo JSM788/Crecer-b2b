@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { FileText, CheckCircle2, Calendar } from "lucide-react";
 import { DataTable, Column } from "@/shared/patterns/DataTable";
 import { FilterBar } from "@/shared/patterns/FilterBar";
@@ -9,6 +9,7 @@ import { Button } from "@/shared/components/ui/button";
 import { Badge } from "@/shared/components/ui/badge";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { formatCurrency } from "@/shared/lib/utils";
+import { optionsFrom } from "@/shared/lib/options";
 import { Gasto } from "../models/gasto.model";
 import { RegistrarGastoDrawer } from "./RegistrarGastoDrawer";
 import { DetalleGastoDrawer } from "./DetalleGastoDrawer";
@@ -23,7 +24,38 @@ export const GastosTable: React.FC<GastosTableProps> = ({ gastos }) => {
   const [seller, setSeller] = useState("Todos");
   const [category, setCategory] = useState("Todas");
   const [isRegistrarOpen, setIsRegistrarOpen] = useState(false);
-  const [selectedGasto, setSelectedGasto] = useState<Gasto | null>(null);
+  const [selectedGastoId, setSelectedGastoId] = useState<string | null>(null);
+
+  // Always read the live row so the drawer reflects the review action immediately.
+  const selectedGasto = gastos.find((g) => g.id === selectedGastoId) ?? null;
+
+  const sellerOptions = useMemo(() => optionsFrom(gastos.map((g) => g.seller)), [gastos]);
+  const categoryOptions = useMemo(
+    () =>
+      optionsFrom(
+        gastos.map((g) => g.category),
+        "Todas"
+      ).map((o) => ({ ...o, value: o.value === "Todos" ? "Todas" : o.value })),
+    [gastos]
+  );
+
+  // Period shown in the header, derived from the dates present in the data ("oct. 2026").
+  const periodLabel = useMemo(() => {
+    const months = Array.from(new Set(gastos.map((g) => g.date.split(" ").slice(1).join(" "))));
+    return months.join(" · ") || "Sin gastos";
+  }, [gastos]);
+
+  const totals = useMemo(() => {
+    const sum = (target: Gasto["status"]) =>
+      gastos.filter((g) => g.status === target).reduce((acc, g) => acc + g.total, 0);
+    const pendientes = gastos.filter((g) => g.status === "Por revisar").length;
+    return {
+      porRevisar: sum("Por revisar"),
+      revisados: sum("Revisado"),
+      countPorRevisar: pendientes,
+      countRevisados: gastos.length - pendientes,
+    };
+  }, [gastos]);
 
   const filtered = gastos.filter((g) => {
     const matchesSearch =
@@ -76,9 +108,9 @@ export const GastosTable: React.FC<GastosTableProps> = ({ gastos }) => {
           size="sm"
           variant="secondary"
           className="h-7 text-xs px-3"
-          onClick={() => setSelectedGasto(row)}
+          onClick={() => setSelectedGastoId(row.id)}
         >
-          Ver
+          {row.status === "Por revisar" ? "Revisar" : "Ver"}
         </Button>
       ),
     },
@@ -107,7 +139,7 @@ export const GastosTable: React.FC<GastosTableProps> = ({ gastos }) => {
 
         <div className="flex items-center gap-2 px-3 py-1.5 border border-zinc-200 rounded-md text-xs font-medium bg-white text-zinc-800 self-end h-9">
           <Calendar className="h-4 w-4 text-zinc-500" />
-          <span>10 mar. 2025 - 16 mar. 2025</span>
+          <span>{periodLabel}</span>
         </div>
 
         <div className="w-36">
@@ -115,11 +147,7 @@ export const GastosTable: React.FC<GastosTableProps> = ({ gastos }) => {
             label="Vendedor"
             value={seller}
             onChange={(e) => setSeller(e.target.value)}
-            options={[
-              { label: "Todos", value: "Todos" },
-              { label: "Ana Torres", value: "Ana Torres" },
-              { label: "Luis Ramos", value: "Luis Ramos" },
-            ]}
+            options={sellerOptions}
           />
         </div>
 
@@ -128,14 +156,7 @@ export const GastosTable: React.FC<GastosTableProps> = ({ gastos }) => {
             label="Categoría"
             value={category}
             onChange={(e) => setCategory(e.target.value)}
-            options={[
-              { label: "Todas", value: "Todas" },
-              { label: "Peaje", value: "Peaje" },
-              { label: "Combustible", value: "Combustible" },
-              { label: "Alimentación", value: "Alimentación" },
-              { label: "Estacionamiento", value: "Estacionamiento" },
-              { label: "Movilidad", value: "Movilidad" },
-            ]}
+            options={categoryOptions}
           />
         </div>
       </FilterBar>
@@ -148,8 +169,8 @@ export const GastosTable: React.FC<GastosTableProps> = ({ gastos }) => {
               <FileText className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-2xs text-zinc-500">Por revisar</p>
-              <p className="text-lg font-bold text-zinc-950">S/ 85</p>
+              <p className="text-2xs text-zinc-500">Por revisar ({totals.countPorRevisar})</p>
+              <p className="text-lg font-bold text-zinc-950">{formatCurrency(totals.porRevisar)}</p>
             </div>
           </CardContent>
         </Card>
@@ -160,8 +181,8 @@ export const GastosTable: React.FC<GastosTableProps> = ({ gastos }) => {
               <CheckCircle2 className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-2xs text-zinc-500">Revisados</p>
-              <p className="text-lg font-bold text-zinc-950">S/ 120</p>
+              <p className="text-2xs text-zinc-500">Revisados ({totals.countRevisados})</p>
+              <p className="text-lg font-bold text-zinc-950">{formatCurrency(totals.revisados)}</p>
             </div>
           </CardContent>
         </Card>
@@ -181,7 +202,7 @@ export const GastosTable: React.FC<GastosTableProps> = ({ gastos }) => {
 
       <DetalleGastoDrawer
         isOpen={!!selectedGasto}
-        onClose={() => setSelectedGasto(null)}
+        onClose={() => setSelectedGastoId(null)}
         gasto={selectedGasto}
       />
     </div>

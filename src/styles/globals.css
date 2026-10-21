@@ -14,21 +14,18 @@
   --radius: 0.5rem;
 }
 
-/* Proportional root scaling for laptops, 1080p and large monitors */
+/*
+ * Single source of truth for UI scale.
+ * Fluid root size: ~14.3px at 1366, ~16.2px at 1920, capped at 18px (>= ~2430px).
+ * Everything sized in rem (Tailwind scale, --content-max) scales with it.
+ * Convention: no fixed px for size/width/spacing; px only for borders, rings, shadows.
+ */
 html {
-  font-size: 14px;
+  font-size: clamp(14px, 0.35vw + 9.5px, 18px);
 }
 
-@media (min-width: 1440px) {
-  html {
-    font-size: 14.5px;
-  }
-}
-
-@media (min-width: 1920px) {
-  html {
-    font-size: 15.5px;
-  }
+:root {
+  --content-max: 105rem;
 }
 
 body {

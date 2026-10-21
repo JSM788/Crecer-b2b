@@ -1,18 +1,6 @@
-export interface MockGasto {
-  id: string;
-  code: string;
-  seller: string;
-  category: "Peaje" | "Combustible" | "Alimentación" | "Estacionamiento" | "Movilidad";
-  date: string;
-  hour?: string;
-  total: number;
-  status: "Por revisar" | "Revisado";
-  rucProvider: string;
-  observations: string;
-  receiptImage?: string;
-}
+import type { Gasto } from "@/modules/comercial/gastos/models/gasto.model";
 
-export const GASTOS_MOCK: MockGasto[] = [
+export const GASTOS_MOCK: Gasto[] = [
   {
     id: "gas-021",
     code: "GAS-021",
@@ -22,32 +10,32 @@ export const GASTOS_MOCK: MockGasto[] = [
     hour: "09:42",
     total: 15.0,
     status: "Por revisar",
-    rucProvider: "20123456789",
-    observations: "Peaje de ruta a visita a Pet Market.",
+    rucProvider: "20100566871",
+    observations: "Peaje durante ruta comercial.",
   },
   {
     id: "gas-020",
     code: "GAS-020",
     seller: "Ana Torres",
     category: "Alimentación",
-    date: "15 oct. 2026",
+    date: "10 oct. 2026",
     hour: "13:30",
     total: 25.0,
     status: "Revisado",
-    rucProvider: "20456789012",
-    observations: "Almuerzo de trabajo en ruta San Miguel.",
+    rucProvider: "20511223344",
+    observations: "Almuerzo de trabajo durante la ruta.",
   },
   {
     id: "gas-019",
     code: "GAS-019",
-    seller: "Luis Ramos",
+    seller: "Ana Torres",
     category: "Combustible",
-    date: "14 oct. 2026",
+    date: "02 oct. 2026",
     hour: "08:15",
-    total: 80.0,
-    status: "Revisado",
+    total: 45.0,
+    status: "Por revisar",
     rucProvider: "20112233445",
-    observations: "Carga de combustible en Primax Javier Prado.",
+    observations: "Carga de combustible antes de la ruta.",
   },
   {
     id: "gas-018",
@@ -64,14 +52,14 @@ export const GASTOS_MOCK: MockGasto[] = [
   {
     id: "gas-017",
     code: "GAS-017",
-    seller: "Ana Torres",
-    category: "Peaje",
-    date: "08 oct. 2026",
-    hour: "16:00",
-    total: 15.0,
+    seller: "Luis Ramos",
+    category: "Combustible",
+    date: "14 oct. 2026",
+    hour: "08:15",
+    total: 80.0,
     status: "Revisado",
-    rucProvider: "20123456789",
-    observations: "Retorno peaje Evitamiento.",
+    rucProvider: "20112233445",
+    observations: "Carga de combustible en Primax Javier Prado.",
   },
   {
     id: "gas-016",

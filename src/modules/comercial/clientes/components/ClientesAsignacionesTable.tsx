@@ -1,35 +1,52 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import Link from "next/link";
 import { UserCheck } from "lucide-react";
 import { DataTable, Column } from "@/shared/patterns/DataTable";
 import { FilterBar } from "@/shared/patterns/FilterBar";
 import { Select } from "@/shared/components/ui/select";
 import { Button } from "@/shared/components/ui/button";
+import { optionsFrom } from "@/shared/lib/options";
+import { clienteTieneFicha, useDemo, useSellerNames } from "@/shared/state/demo-store";
 import { Cliente } from "../models/cliente.model";
-import { AsignarVendedorDrawer } from "./AsignarVendedorDrawer";
+import { AsignarVendedorDrawer, SCOPE_SAME_RUC } from "./AsignarVendedorDrawer";
 
 interface ClientesAsignacionesTableProps {
   clientes: Cliente[];
 }
 
 export const ClientesAsignacionesTable: React.FC<ClientesAsignacionesTableProps> = ({
-  clientes: initialClientes,
+  clientes,
 }) => {
-  const [clientes, setClientes] = useState<Cliente[]>(initialClientes);
+  const { asignarVendedor } = useDemo();
+  const sellers = useSellerNames();
   const [search, setSearch] = useState("");
   const [seller, setSeller] = useState("Todos");
   const [zone, setZone] = useState("Todas");
-  const [selectedIds, setSelectedIds] = useState<string[]>(["cl-001"]);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isAsignarOpen, setIsAsignarOpen] = useState(false);
-  const [drawerClientes, setDrawerClientes] = useState<Cliente[]>([]);
+  const [drawerClienteIds, setDrawerClienteIds] = useState<string[]>([]);
+
+  const sellerOptions = useMemo(
+    () => optionsFrom(clientes.map((c) => c.seller), "Todos los vendedores"),
+    [clientes]
+  );
+  const zoneOptions = useMemo(
+    () =>
+      optionsFrom(
+        clientes.map((c) => c.zone),
+        "Todas las zonas"
+      ).map((o) => ({ ...o, value: o.value === "Todos" ? "Todas" : o.value })),
+    [clientes]
+  );
 
   const filteredData = clientes.filter((c) => {
     const matchesSearch =
       !search ||
       c.name.toLowerCase().includes(search.toLowerCase()) ||
-      c.code.toLowerCase().includes(search.toLowerCase());
+      c.code.toLowerCase().includes(search.toLowerCase()) ||
+      c.ruc.includes(search);
     const matchesSeller = seller === "Todos" || c.seller === seller;
     const matchesZone = zone === "Todas" || c.zone === zone;
 
@@ -50,25 +67,28 @@ export const ClientesAsignacionesTable: React.FC<ClientesAsignacionesTableProps>
     }
   };
 
-  const selectedClientes = clientes.filter((c) => selectedIds.includes(c.id));
+  // Drawer clients are read live from the store so the summary never goes stale.
+  const drawerClientes = clientes.filter((c) => drawerClienteIds.includes(c.id));
 
   const handleOpenSingleAssign = (cliente: Cliente) => {
-    setDrawerClientes([cliente]);
+    setDrawerClienteIds([cliente.id]);
     setIsAsignarOpen(true);
   };
 
   const handleOpenBulkAssign = () => {
-    setDrawerClientes(selectedClientes);
+    setDrawerClienteIds(selectedIds);
     setIsAsignarOpen(true);
   };
 
-  const handleAssignSeller = (newSeller: string) => {
-    const idsToUpdate = drawerClientes.map((c) => c.id);
-    setClientes((prev) =>
-      prev.map((c) => (idsToUpdate.includes(c.id) ? { ...c, seller: newSeller } : c))
-    );
+  const handleAssignSeller = (newSeller: string, scope: string) => {
+    let idsToUpdate = drawerClienteIds;
+    if (scope === SCOPE_SAME_RUC) {
+      const rucs = new Set(drawerClientes.map((c) => c.ruc));
+      idsToUpdate = clientes.filter((c) => rucs.has(c.ruc)).map((c) => c.id);
+    }
+    asignarVendedor(idsToUpdate, newSeller);
     setSelectedIds((prev) => prev.filter((id) => !idsToUpdate.includes(id)));
-    setDrawerClientes([]);
+    setDrawerClienteIds([]);
     setIsAsignarOpen(false);
   };
 
@@ -79,13 +99,20 @@ export const ClientesAsignacionesTable: React.FC<ClientesAsignacionesTableProps>
       width: "30%",
       cell: (row) => (
         <div>
-          <Link
-            href={`/comercial/clientes/${row.id}/`}
-            className="font-semibold text-zinc-900 hover:underline block"
-          >
-            {row.name}
-          </Link>
-          <span className="text-2xs text-zinc-400 font-normal">{row.code}</span>
+          {clienteTieneFicha(row.id) ? (
+            <Link
+              href={`/comercial/clientes/${row.id}/`}
+              className="font-semibold text-zinc-900 hover:underline block"
+            >
+              {row.name}
+            </Link>
+          ) : (
+            <span className="font-semibold text-zinc-900 block">{row.name}</span>
+          )}
+          <span className="text-2xs text-zinc-400 font-normal">
+            {row.code}
+            {!clienteTieneFicha(row.id) && " · Ficha pendiente de sincronización"}
+          </span>
         </div>
       ),
     },
@@ -144,13 +171,7 @@ export const ClientesAsignacionesTable: React.FC<ClientesAsignacionesTableProps>
             label="Vendedor"
             value={seller}
             onChange={(e) => setSeller(e.target.value)}
-            options={[
-              { label: "Todos los vendedores", value: "Todos" },
-              { label: "Ana Torres", value: "Ana Torres" },
-              { label: "Carlos Rojas", value: "Carlos Rojas" },
-              { label: "Lucía Mendoza", value: "Lucía Mendoza" },
-              { label: "Luis Ramos", value: "Luis Ramos" },
-            ]}
+            options={sellerOptions}
           />
         </div>
         <div className="w-44">
@@ -158,12 +179,7 @@ export const ClientesAsignacionesTable: React.FC<ClientesAsignacionesTableProps>
             label="Zona"
             value={zone}
             onChange={(e) => setZone(e.target.value)}
-            options={[
-              { label: "Todas las zonas", value: "Todas" },
-              { label: "Lima Centro", value: "Lima Centro" },
-              { label: "Lima Sur", value: "Lima Sur" },
-              { label: "Lima Oeste", value: "Lima Oeste" },
-            ]}
+            options={zoneOptions}
           />
         </div>
       </FilterBar>
@@ -181,9 +197,9 @@ export const ClientesAsignacionesTable: React.FC<ClientesAsignacionesTableProps>
 
       {/* Floating Bottom Action Bar for Bulk Assignment */}
       {selectedIds.length > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-white border border-zinc-200/90 shadow-xl rounded-xl px-4 py-2.5 flex items-center justify-between gap-8 min-w-[340px] sm:min-w-[420px]">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-white border border-zinc-200/90 shadow-xl rounded-xl px-4 py-2.5 flex items-center justify-between gap-8 min-w-80 sm:min-w-[26rem]">
           <div className="flex items-center gap-2.5 text-xs font-semibold text-zinc-900">
-            <div className="w-4 h-4 rounded bg-[#27272a] text-white flex items-center justify-center text-[10px] font-bold">
+            <div className="w-4 h-4 rounded bg-[#27272a] text-white flex items-center justify-center text-3xs font-bold">
               ✓
             </div>
             <span>
@@ -204,9 +220,10 @@ export const ClientesAsignacionesTable: React.FC<ClientesAsignacionesTableProps>
         isOpen={isAsignarOpen}
         onClose={() => {
           setIsAsignarOpen(false);
-          setDrawerClientes([]);
+          setDrawerClienteIds([]);
         }}
         selectedClientes={drawerClientes}
+        sellers={sellers}
         onConfirm={handleAssignSeller}
       />
     </div>

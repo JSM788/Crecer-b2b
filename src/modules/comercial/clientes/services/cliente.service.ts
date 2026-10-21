@@ -1,6 +1,7 @@
 import { CLIENTES_MOCK } from "@/mocks/clientes.mock";
+import { FACTURAS_PENDIENTES_MOCK } from "@/mocks/facturas.mock";
 import { adaptMockClienteToCliente } from "../adapters/cliente.adapter";
-import { Cliente, ClienteFilters } from "../models/cliente.model";
+import { Cliente, ClienteFilters, FacturaPendiente } from "../models/cliente.model";
 
 export function getClientes(filters?: ClienteFilters): Cliente[] {
   let list = CLIENTES_MOCK.map(adaptMockClienteToCliente);
@@ -33,4 +34,8 @@ export function getClientes(filters?: ClienteFilters): Cliente[] {
 export function getClienteById(id: string): Cliente | undefined {
   const raw = CLIENTES_MOCK.find((c) => c.id === id || c.code.toLowerCase() === id.toLowerCase());
   return raw ? adaptMockClienteToCliente(raw) : undefined;
+}
+
+export function getFacturasPendientes(clienteId: string): FacturaPendiente[] {
+  return FACTURAS_PENDIENTES_MOCK.filter((f) => f.clienteId === clienteId);
 }

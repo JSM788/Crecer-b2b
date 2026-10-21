@@ -18,7 +18,10 @@ import { Tabs } from "@/shared/components/ui/tabs";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { formatCurrency } from "@/shared/lib/utils";
+import { getRegistrosVisita } from "@/modules/comercial/visitas-jornadas";
+import { useDemo, useLiveCliente } from "@/shared/state/demo-store";
 import { Cliente } from "../models/cliente.model";
+import { buildClienteActivity } from "../lib/activity";
 import { ClienteComprasTab } from "./ClienteComprasTab";
 import { ClienteCreditoTab } from "./ClienteCreditoTab";
 import { ClienteActividadTab } from "./ClienteActividadTab";
@@ -27,8 +30,30 @@ interface ClienteFichaViewProps {
   cliente: Cliente;
 }
 
-export const ClienteFichaView: React.FC<ClienteFichaViewProps> = ({ cliente }) => {
+export const ClienteFichaView: React.FC<ClienteFichaViewProps> = ({ cliente: seed }) => {
+  const cliente = useLiveCliente(seed);
+  const { pedidos, cotizaciones } = useDemo();
   const [activeTab, setActiveTab] = useState("resumen");
+
+  const maxPurchase = Math.max(...cliente.purchaseHistory.map((h) => h.amount), 1);
+  const chart = cliente.purchaseHistory.map((h) => ({
+    month: h.month,
+    label: h.amount >= 1000 ? `S/ ${(h.amount / 1000).toFixed(1).replace(".0", "")}k` : `S/ ${h.amount}`,
+    height: `${Math.max(8, Math.round((h.amount / maxPurchase) * 90))}%`,
+  }));
+
+  const recentActivity = buildClienteActivity(
+    cliente.id,
+    pedidos,
+    cotizaciones,
+    getRegistrosVisita().filter((r) => r.clientId === cliente.id)
+  ).slice(0, 4);
+  const ACTIVITY_ICON = {
+    Visitas: MapPin,
+    Pagos: FileText,
+    Pedidos: ShoppingBag,
+    Cotizaciones: FileText,
+  } as const;
 
   const tabs = [
     { id: "resumen", label: "Resumen" },
@@ -97,7 +122,7 @@ export const ClienteFichaView: React.FC<ClienteFichaViewProps> = ({ cliente }) =
                     <User className="h-4 w-4 text-zinc-400 mt-0.5 shrink-0" />
                     <div>
                       <p className="font-medium text-zinc-900">{cliente.seller}</p>
-                      <p className="text-2xs text-zinc-400">Ejecutiva comercial</p>
+                      <p className="text-2xs text-zinc-400">Vendedor</p>
                     </div>
                   </div>
                 </div>
@@ -178,21 +203,14 @@ export const ClienteFichaView: React.FC<ClienteFichaViewProps> = ({ cliente }) =
                   Compras de los últimos 6 meses
                 </h3>
                 <div className="h-44 flex items-end justify-between gap-3 pt-6 pb-2 px-2 border-b border-zinc-100">
-                  {[
-                    { month: "Abr", amount: 2000, height: "40%" },
-                    { month: "May", amount: 4500, height: "65%" },
-                    { month: "Jun", amount: 7200, height: "90%" },
-                    { month: "Jul", amount: 2600, height: "45%" },
-                    { month: "Ago", amount: 4800, height: "70%" },
-                    { month: "Sep", amount: 3200, height: "55%" },
-                  ].map((bar) => (
+                  {chart.map((bar) => (
                     <div key={bar.month} className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
                       <span className="text-2xs text-zinc-400 font-medium">
-                        S/ {bar.amount / 1000}k
+                        {bar.label}
                       </span>
                       <div
                         style={{ height: bar.height }}
-                        className="w-full max-w-[36px] bg-zinc-400 hover:bg-zinc-700 rounded-t transition-all"
+                        className="w-full max-w-9 bg-zinc-400 hover:bg-zinc-700 rounded-t transition-all"
                       />
                       <span className="text-2xs text-zinc-500 font-medium">{bar.month}</span>
                     </div>
@@ -206,49 +224,38 @@ export const ClienteFichaView: React.FC<ClienteFichaViewProps> = ({ cliente }) =
               <CardContent className="p-5 space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-xs font-semibold text-zinc-900">Actividad reciente</h3>
-                  <button className="text-2xs text-zinc-500 hover:underline">Ver todas</button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("actividad")}
+                    className="text-2xs text-zinc-500 hover:underline"
+                  >
+                    Ver todas
+                  </button>
                 </div>
 
                 <div className="space-y-3.5 text-xs">
-                  <div className="flex items-start gap-3">
-                    <div className="p-1.5 rounded-full bg-zinc-100 text-zinc-600 mt-0.5">
-                      <MapPin className="h-3.5 w-3.5" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-zinc-900 font-medium">Se registró una visita comercial</p>
-                      <p className="text-2xs text-zinc-400">Hoy, 10:24</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3">
-                    <div className="p-1.5 rounded-full bg-zinc-100 text-zinc-600 mt-0.5">
-                      <FileText className="h-3.5 w-3.5" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-zinc-900 font-medium">Se creó la cotización COT-1042</p>
-                      <p className="text-2xs text-zinc-400">Ayer, 16:40</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3">
-                    <div className="p-1.5 rounded-full bg-zinc-100 text-zinc-600 mt-0.5">
-                      <ShoppingBag className="h-3.5 w-3.5" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-zinc-900 font-medium">Se registró un pedido PED-0871</p>
-                      <p className="text-2xs text-zinc-400">12 mar. 2025</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3">
-                    <div className="p-1.5 rounded-full bg-zinc-100 text-zinc-600 mt-0.5">
-                      <User className="h-3.5 w-3.5" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-zinc-900 font-medium">Ana Torres actualizó los datos del cliente</p>
-                      <p className="text-2xs text-zinc-400">10 mar. 2025</p>
-                    </div>
-                  </div>
+                  {recentActivity.length === 0 && (
+                    <p className="text-zinc-400">Este cliente aún no registra actividad.</p>
+                  )}
+                  {recentActivity.map((event) => {
+                    const Icon = ACTIVITY_ICON[event.type];
+                    return (
+                      <div key={event.key} className="flex items-start gap-3">
+                        <div className="p-1.5 rounded-full bg-zinc-100 text-zinc-600 mt-0.5">
+                          <Icon className="h-3.5 w-3.5" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-zinc-900 font-medium">
+                            {event.title}
+                            {event.lines[0] ? ` · ${event.lines[0].split(" · ")[0]}` : ""}
+                          </p>
+                          <p className="text-2xs text-zinc-400">
+                            {event.date}, {event.time} · {event.responsible}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
 
                 {/* Ocultado temporalmente: acción ejecutada en App Móvil / ERP (SAP/Defontana)

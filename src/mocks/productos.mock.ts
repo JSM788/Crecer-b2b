@@ -11,7 +11,7 @@ export interface MockProducto {
 export const PRODUCTOS_MOCK: MockProducto[] = [
   {
     id: "prod-001",
-    sku: "BRA-AD7",
+    sku: "BRA-AD-7",
     name: "Bravery Adulto 7 kg",
     brand: "Bravery",
     stock: 8,
@@ -19,19 +19,19 @@ export const PRODUCTOS_MOCK: MockProducto[] = [
   },
   {
     id: "prod-002",
-    sku: "BRV-GA2",
+    sku: "BRA-GA-2",
     name: "Bravery Gato 2 kg",
     brand: "Bravery",
     stock: 0,
-    price: 70.0,
+    price: 140.0,
   },
   {
     id: "prod-003",
-    sku: "PUP-2KG",
-    name: "Puppy 2 kg",
+    sku: "BRA-PU-7",
+    name: "Bravery Puppy 7 kg",
     brand: "Bravery",
-    stock: 12,
-    price: 85.0,
+    stock: 6,
+    price: 130.0,
   },
   {
     id: "prod-004",

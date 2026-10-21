@@ -3,10 +3,10 @@
 import React from "react";
 import { SideDrawer } from "@/shared/components/ui/side-drawer";
 import { Button } from "@/shared/components/ui/button";
-import { Badge } from "@/shared/components/ui/badge";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, CheckCircle2 } from "lucide-react";
 import { Gasto } from "../models/gasto.model";
 import { formatCurrency } from "@/shared/lib/utils";
+import { useDemo } from "@/shared/state/demo-store";
 
 interface DetalleGastoDrawerProps {
   isOpen: boolean;
@@ -19,7 +19,11 @@ export const DetalleGastoDrawer: React.FC<DetalleGastoDrawerProps> = ({
   onClose,
   gasto,
 }) => {
+  const { revisarGasto } = useDemo();
+
   if (!gasto) return null;
+
+  const porRevisar = gasto.status === "Por revisar";
 
   return (
     <SideDrawer
@@ -33,9 +37,16 @@ export const DetalleGastoDrawer: React.FC<DetalleGastoDrawerProps> = ({
             <AlertCircle className="h-3.5 w-3.5" />
             <span>Revisión según permisos.</span>
           </div>
-          <Button variant="secondary" onClick={onClose} size="sm">
-            Cerrar
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="secondary" onClick={onClose} size="sm">
+              Cerrar
+            </Button>
+            {porRevisar && (
+              <Button size="sm" onClick={() => revisarGasto(gasto.id)}>
+                <CheckCircle2 className="h-3.5 w-3.5" /> Marcar como revisado
+              </Button>
+            )}
+          </div>
         </div>
       }
     >
@@ -63,7 +74,10 @@ export const DetalleGastoDrawer: React.FC<DetalleGastoDrawerProps> = ({
           </div>
           <div className="flex justify-between">
             <span className="text-zinc-500">Fecha</span>
-            <span className="text-zinc-800">{gasto.date}, {gasto.hour || "09:42"}</span>
+            <span className="text-zinc-800">
+              {gasto.date}
+              {gasto.hour ? `, ${gasto.hour}` : ""}
+            </span>
           </div>
         </div>
 
@@ -72,12 +86,14 @@ export const DetalleGastoDrawer: React.FC<DetalleGastoDrawerProps> = ({
           <label className="block text-xs font-semibold text-zinc-800 mb-1.5">
             Comprobante
           </label>
-          <div className="p-4 bg-zinc-100 border border-zinc-300 rounded-lg text-center font-mono text-zinc-800 space-y-1 max-w-[240px] mx-auto shadow-xs">
-            <p className="font-bold text-sm">RUTAS DEL SUR</p>
-            <p className="text-2xs">PEAJE</p>
+          <div className="p-4 bg-zinc-100 border border-zinc-300 rounded-lg text-center font-mono text-zinc-800 space-y-1 max-w-60 mx-auto shadow-xs">
+            <p className="font-bold text-sm">RUC {gasto.rucProvider}</p>
+            <p className="text-2xs uppercase">{gasto.category}</p>
             <p className="font-bold text-base my-2">{formatCurrency(gasto.total)}</p>
-            <p className="text-2xs text-zinc-500">{gasto.date} 09:42</p>
-            <p className="text-2xs text-zinc-400">Vía 3</p>
+            <p className="text-2xs text-zinc-500">
+              {gasto.date}
+              {gasto.hour ? ` ${gasto.hour}` : ""}
+            </p>
           </div>
         </div>
 
@@ -95,12 +111,25 @@ export const DetalleGastoDrawer: React.FC<DetalleGastoDrawerProps> = ({
           <label className="block text-xs font-semibold text-zinc-800 mb-2">
             Historial
           </label>
-          <div className="flex items-start gap-2 text-xs">
-            <span className="w-2 h-2 rounded-full bg-zinc-400 mt-1.5 shrink-0" />
-            <div>
-              <p className="font-medium text-zinc-900">Registrado por {gasto.seller}</p>
-              <p className="text-2xs text-zinc-400">{gasto.date}, 09:50</p>
+          <div className="space-y-2">
+            <div className="flex items-start gap-2 text-xs">
+              <span className="w-2 h-2 rounded-full bg-zinc-400 mt-1.5 shrink-0" />
+              <div>
+                <p className="font-medium text-zinc-900">Registrado por {gasto.seller}</p>
+                <p className="text-2xs text-zinc-400">
+                  {gasto.date}
+                  {gasto.hour ? `, ${gasto.hour}` : ""}
+                </p>
+              </div>
             </div>
+            {!porRevisar && (
+              <div className="flex items-start gap-2 text-xs">
+                <span className="w-2 h-2 rounded-full bg-zinc-400 mt-1.5 shrink-0" />
+                <div>
+                  <p className="font-medium text-zinc-900">Revisado por supervisión</p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

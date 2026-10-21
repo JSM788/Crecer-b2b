@@ -32,3 +32,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local tool caches & mobile assets
+.atl/
+.claude/
+imagenes/mobile/
+imagenes/mobile.zip
+

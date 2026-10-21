@@ -5,15 +5,12 @@ import { Plus } from "lucide-react";
 import { DashboardShell } from "@/shared/layout/DashboardShell";
 import { PageHeader } from "@/shared/patterns/PageHeader";
 import { Button } from "@/shared/components/ui/button";
-import {
-  getGastos,
-  GastosTable,
-  RegistrarGastoDrawer,
-} from "@/modules/comercial/gastos";
+import { GastosTable, RegistrarGastoDrawer } from "@/modules/comercial/gastos";
+import { useDemo } from "@/shared/state/demo-store";
 
 export default function GastosPage() {
   const [isRegistrarOpen, setIsRegistrarOpen] = useState(false);
-  const gastos = getGastos();
+  const { gastos } = useDemo();
 
   return (
     <DashboardShell>

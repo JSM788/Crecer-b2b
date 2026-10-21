@@ -20,5 +20,6 @@ export function adaptMockClienteToCliente(raw: MockCliente): Cliente {
     expiredDebt: raw.expiredDebt,
     creditLimit: raw.creditLimit,
     currentDebt: raw.currentDebt,
+    purchaseHistory: raw.purchaseHistory,
   };
 }

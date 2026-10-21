@@ -1,11 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { DataTable, Column } from "@/shared/patterns/DataTable";
 import { FilterBar } from "@/shared/patterns/FilterBar";
 import { Select } from "@/shared/components/ui/select";
 import { Button } from "@/shared/components/ui/button";
 import { Badge } from "@/shared/components/ui/badge";
+import { optionsFrom } from "@/shared/lib/options";
+import { useDemo } from "@/shared/state/demo-store";
 import { MaterialPOP } from "../models/solicitud.model";
 import { DetalleMaterialPOPDrawer } from "./DetalleMaterialPOPDrawer";
 
@@ -14,15 +16,35 @@ interface MaterialPOPTableProps {
   onOpenNew?: () => void;
 }
 
-export const MaterialPOPTable: React.FC<MaterialPOPTableProps> = ({
-  materiales,
-  onOpenNew,
-}) => {
+export const MaterialPOPTable: React.FC<MaterialPOPTableProps> = ({ materiales }) => {
+  const { clientes } = useDemo();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("Todos");
   const [brand, setBrand] = useState("Todas");
   const [seller, setSeller] = useState("Todos");
-  const [selectedMaterial, setSelectedMaterial] = useState<MaterialPOP | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  // The requester of a POP is the seller assigned to the client in the master data.
+  const sellerOf = (m: MaterialPOP) =>
+    clientes.find((c) => c.name === m.clientName)?.seller ?? "Sin asignar";
+
+  const selectedMaterial = materiales.find((m) => m.id === selectedId) ?? null;
+
+  const brandOptions = useMemo(
+    () =>
+      optionsFrom(
+        materiales.map((m) => m.brand),
+        "Todas"
+      ).map((o) => ({ ...o, value: o.value === "Todos" ? "Todas" : o.value })),
+    [materiales]
+  );
+  const sellerOptions = useMemo(
+    () =>
+      optionsFrom(
+        materiales.map((m) => clientes.find((c) => c.name === m.clientName)?.seller ?? "Sin asignar")
+      ),
+    [materiales, clientes]
+  );
 
   const filtered = materiales.filter((m) => {
     const matchesSearch =
@@ -31,8 +53,9 @@ export const MaterialPOPTable: React.FC<MaterialPOPTableProps> = ({
       m.clientName.toLowerCase().includes(search.toLowerCase());
     const matchesStatus = status === "Todos" || m.status === status;
     const matchesBrand = brand === "Todas" || m.brand === brand;
+    const matchesSeller = seller === "Todos" || sellerOf(m) === seller;
 
-    return matchesSearch && matchesStatus && matchesBrand;
+    return matchesSearch && matchesStatus && matchesBrand && matchesSeller;
   });
 
   const columns: Column<MaterialPOP>[] = [
@@ -45,6 +68,10 @@ export const MaterialPOPTable: React.FC<MaterialPOPTableProps> = ({
       header: "Cliente",
       accessorKey: "clientName",
       cell: (row) => <span className="font-medium text-zinc-900">{row.clientName}</span>,
+    },
+    {
+      header: "Solicitante",
+      cell: (row) => <span>{sellerOf(row)}</span>,
     },
     {
       header: "Material",
@@ -83,9 +110,9 @@ export const MaterialPOPTable: React.FC<MaterialPOPTableProps> = ({
           size="sm"
           variant="secondary"
           className="h-7 text-xs px-3"
-          onClick={() => setSelectedMaterial(row)}
+          onClick={() => setSelectedId(row.id)}
         >
-          Ver
+          {row.status === "Pendiente" ? "Revisar" : "Ver"}
         </Button>
       ),
     },
@@ -107,6 +134,7 @@ export const MaterialPOPTable: React.FC<MaterialPOPTableProps> = ({
               { label: "Todos", value: "Todos" },
               { label: "Pendiente", value: "Pendiente" },
               { label: "Aprobada", value: "Aprobada" },
+              { label: "Rechazada", value: "Rechazada" },
             ]}
           />
         </div>
@@ -116,12 +144,7 @@ export const MaterialPOPTable: React.FC<MaterialPOPTableProps> = ({
             label="Marca"
             value={brand}
             onChange={(e) => setBrand(e.target.value)}
-            options={[
-              { label: "Todas", value: "Todas" },
-              { label: "Bravery", value: "Bravery" },
-              { label: "Royal Canin", value: "Royal Canin" },
-              { label: "Pro Plan", value: "Pro Plan" },
-            ]}
+            options={brandOptions}
           />
         </div>
 
@@ -130,11 +153,7 @@ export const MaterialPOPTable: React.FC<MaterialPOPTableProps> = ({
             label="Vendedor"
             value={seller}
             onChange={(e) => setSeller(e.target.value)}
-            options={[
-              { label: "Todos", value: "Todos" },
-              { label: "Ana Torres", value: "Ana Torres" },
-              { label: "Luis Ramos", value: "Luis Ramos" },
-            ]}
+            options={sellerOptions}
           />
         </div>
       </FilterBar>
@@ -148,7 +167,7 @@ export const MaterialPOPTable: React.FC<MaterialPOPTableProps> = ({
 
       <DetalleMaterialPOPDrawer
         isOpen={!!selectedMaterial}
-        onClose={() => setSelectedMaterial(null)}
+        onClose={() => setSelectedId(null)}
         material={selectedMaterial}
       />
     </div>

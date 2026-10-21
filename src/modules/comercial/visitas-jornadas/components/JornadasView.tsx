@@ -1,23 +1,84 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import Link from "next/link";
-import { Calendar, Users, AlertCircle, X, ChevronRight } from "lucide-react";
+import { Calendar, Users, AlertCircle, X } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Select } from "@/shared/components/ui/select";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Badge } from "@/shared/components/ui/badge";
 import { DataTable, Column } from "@/shared/patterns/DataTable";
+import { optionsFrom } from "@/shared/lib/options";
+import { useDemo } from "@/shared/state/demo-store";
 import { JornadaSummary } from "../models/visita.model";
+import { pendingSlots } from "../lib/progress";
+import { SCENARIO_DAY } from "./scenario-day";
 
 interface JornadasViewProps {
+  /** Workdays from the demo store (visit counts are derived from the agenda). */
   jornadas: JornadaSummary[];
 }
 
+const STATUS_VARIANT: Record<JornadaSummary["status"], "info" | "danger" | "success" | "neutral"> = {
+  "En jornada": "info",
+  Interrumpida: "danger",
+  Finalizada: "success",
+  "Sin iniciar": "neutral",
+};
+
+const ACTION_LABEL: Record<JornadaSummary["status"], string> = {
+  "En jornada": "Abrir",
+  Interrumpida: "Revisar",
+  Finalizada: "Ver",
+  "Sin iniciar": "Ver",
+};
+
+const STATUS_ORDER: JornadaSummary["status"][] = ["En jornada", "Interrumpida", "Sin iniciar", "Finalizada"];
+
 export const JornadasView: React.FC<JornadasViewProps> = ({ jornadas }) => {
+  const { agenda, clientes } = useDemo();
   const [team, setTeam] = useState("Todos");
   const [status, setStatus] = useState("Todos");
   const [showAlert, setShowAlert] = useState(true);
+
+  // A seller belongs to the teams (zones) of the clients they serve.
+  const zonesBySeller = useMemo(() => {
+    const map = new Map<string, Set<string>>();
+    for (const c of clientes) {
+      if (!map.has(c.seller)) map.set(c.seller, new Set());
+      map.get(c.seller)!.add(c.zone);
+    }
+    return map;
+  }, [clientes]);
+
+  const teamOptions = useMemo(() => {
+    const zones = Array.from(zonesBySeller.values()).flatMap((set) => Array.from(set));
+    return optionsFrom(zones).map((o) =>
+      o.value === "Todos" ? o : { ...o, label: `Equipo ${o.label}` }
+    );
+  }, [zonesBySeller]);
+
+  const statusOptions = useMemo(
+    () => [
+      { label: "Todos", value: "Todos" },
+      ...STATUS_ORDER.map((s) => ({ label: s, value: s })),
+    ],
+    []
+  );
+
+  const visibleJornadas = jornadas.filter(
+    (j) =>
+      (team === "Todos" || zonesBySeller.get(j.seller)?.has(team)) &&
+      (status === "Todos" || j.status === status)
+  );
+
+  const activeCount = jornadas.filter((j) => j.status === "En jornada").length;
+  const interrumpidas = jornadas.filter((j) => j.status === "Interrumpida");
+  const pendingToReassign = interrumpidas.reduce(
+    (total, j) => total + pendingSlots(agenda, j.seller).length,
+    0
+  );
+  const firstToReview = interrumpidas.find((j) => pendingSlots(agenda, j.seller).length > 0);
 
   const columns: Column<JornadaSummary>[] = [
     {
@@ -27,13 +88,15 @@ export const JornadasView: React.FC<JornadasViewProps> = ({ jornadas }) => {
     },
     {
       header: "Inicio",
-      accessorKey: "startTime",
-      cell: (row) => <span className="text-zinc-600">{row.startTime}</span>,
+      cell: (row) => (
+        <span className="text-zinc-600">{row.status === "Sin iniciar" ? "-" : row.startTime}</span>
+      ),
     },
     {
       header: "Avance",
       cell: (row) => {
-        const percentage = Math.round((row.completedVisits / row.totalVisits) * 100) || 0;
+        const percentage =
+          row.totalVisits > 0 ? Math.round((row.completedVisits / row.totalVisits) * 100) : 0;
         return (
           <div className="flex items-center gap-2">
             <span className="text-zinc-700 font-medium">
@@ -51,15 +114,7 @@ export const JornadasView: React.FC<JornadasViewProps> = ({ jornadas }) => {
     },
     {
       header: "Estado",
-      cell: (row) => {
-        const variant =
-          row.status === "En jornada"
-            ? "info"
-            : row.status === "Interrumpida"
-            ? "danger"
-            : "neutral";
-        return <Badge variant={variant}>{row.status}</Badge>;
-      },
+      cell: (row) => <Badge variant={STATUS_VARIANT[row.status]}>{row.status}</Badge>,
     },
     {
       header: "Acción",
@@ -71,7 +126,7 @@ export const JornadasView: React.FC<JornadasViewProps> = ({ jornadas }) => {
             variant={row.status === "En jornada" ? "primary" : "secondary"}
             className="h-7 text-xs px-2.5"
           >
-            {row.status === "En jornada" ? "Abrir" : row.status === "Interrumpida" ? "Revisar" : "Ver"}
+            {ACTION_LABEL[row.status]}
           </Button>
         </Link>
       ),
@@ -85,7 +140,7 @@ export const JornadasView: React.FC<JornadasViewProps> = ({ jornadas }) => {
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2 px-3 py-1.5 border border-zinc-200 rounded-md text-xs font-medium bg-white text-zinc-800">
             <Calendar className="h-4 w-4 text-zinc-500" />
-            <span>16 oct. 2026</span>
+            <span>{SCENARIO_DAY}</span>
           </div>
 
           <div className="w-40">
@@ -93,11 +148,7 @@ export const JornadasView: React.FC<JornadasViewProps> = ({ jornadas }) => {
               label="Equipo"
               value={team}
               onChange={(e) => setTeam(e.target.value)}
-              options={[
-                { label: "Todos", value: "Todos" },
-                { label: "Equipo Lima Centro", value: "Lima Centro" },
-                { label: "Equipo Lima Sur", value: "Lima Sur" },
-              ]}
+              options={teamOptions}
             />
           </div>
 
@@ -106,12 +157,7 @@ export const JornadasView: React.FC<JornadasViewProps> = ({ jornadas }) => {
               label="Estado"
               value={status}
               onChange={(e) => setStatus(e.target.value)}
-              options={[
-                { label: "Todos", value: "Todos" },
-                { label: "En jornada", value: "En jornada" },
-                { label: "Interrumpida", value: "Interrumpida" },
-                { label: "Sin iniciar", value: "Sin iniciar" },
-              ]}
+              options={statusOptions}
             />
           </div>
         </div>
@@ -132,10 +178,12 @@ export const JornadasView: React.FC<JornadasViewProps> = ({ jornadas }) => {
             </div>
             <div>
               <div className="flex items-baseline gap-1.5">
-                <span className="text-xl font-bold text-zinc-950">4</span>
-                <span className="text-xs font-semibold text-zinc-800">Jornadas activas</span>
+                <span className="text-xl font-bold text-zinc-950">{activeCount}</span>
+                <span className="text-xs font-semibold text-zinc-800">
+                  {activeCount === 1 ? "Jornada activa" : "Jornadas activas"}
+                </span>
               </div>
-              <p className="text-2xs text-zinc-400">de 5 vendedores</p>
+              <p className="text-2xs text-zinc-400">de {jornadas.length} vendedores</p>
             </div>
           </CardContent>
         </Card>
@@ -147,30 +195,47 @@ export const JornadasView: React.FC<JornadasViewProps> = ({ jornadas }) => {
             </div>
             <div>
               <div className="flex items-baseline gap-1.5">
-                <span className="text-xl font-bold text-zinc-950">2</span>
+                <span className="text-xl font-bold text-zinc-950">{pendingToReassign}</span>
                 <span className="text-xs font-semibold text-zinc-800">
                   Visitas pendientes de reasignar
                 </span>
               </div>
-              <p className="text-2xs text-amber-600 font-medium">requieren atención</p>
+              <p
+                className={`text-2xs font-medium ${
+                  pendingToReassign > 0 ? "text-amber-600" : "text-zinc-400"
+                }`}
+              >
+                {pendingToReassign > 0 ? "requieren atención" : "sin pendientes por reasignar"}
+              </p>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Alert Banner */}
-      {showAlert && (
+      {/* Alert Banner: derived from interrupted workdays */}
+      {showAlert && firstToReview && (
         <div className="p-3 bg-zinc-100 border border-zinc-200 rounded-lg flex items-center justify-between text-xs text-zinc-800">
           <div className="flex items-center gap-2.5">
             <AlertCircle className="h-4 w-4 text-zinc-600" />
-            <span>2 visitas requieren reasignación por vendedor no disponible.</span>
+            <span>
+              {pendingToReassign} {pendingToReassign === 1 ? "visita requiere" : "visitas requieren"}{" "}
+              reasignación por jornada interrumpida (
+              {interrumpidas
+                .filter((j) => pendingSlots(agenda, j.seller).length > 0)
+                .map((j) => j.seller)
+                .join(", ")}
+              ).
+            </span>
           </div>
           <div className="flex items-center gap-2">
-            <Button size="sm" variant="secondary" className="h-7 text-xs">
-              Revisar visitas
-            </Button>
+            <Link href={`/comercial/visitas-jornadas/jornada/${firstToReview.id}/`}>
+              <Button size="sm" variant="secondary" className="h-7 text-xs">
+                Revisar visitas
+              </Button>
+            </Link>
             <button
               onClick={() => setShowAlert(false)}
+              aria-label="Cerrar aviso"
               className="p-1 text-zinc-400 hover:text-zinc-600"
             >
               <X className="h-4 w-4" />
@@ -182,7 +247,7 @@ export const JornadasView: React.FC<JornadasViewProps> = ({ jornadas }) => {
       {/* Table */}
       <DataTable
         columns={columns}
-        data={jornadas}
+        data={visibleJornadas}
         keyExtractor={(row) => row.id}
         entityName="jornadas"
       />

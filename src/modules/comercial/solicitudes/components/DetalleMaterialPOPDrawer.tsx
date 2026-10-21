@@ -1,10 +1,11 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { SideDrawer } from "@/shared/components/ui/side-drawer";
 import { Button } from "@/shared/components/ui/button";
 import { Badge } from "@/shared/components/ui/badge";
-import { Info, Package } from "lucide-react";
+import { Info } from "lucide-react";
+import { useDemo } from "@/shared/state/demo-store";
 import { MaterialPOP } from "../models/solicitud.model";
 
 interface DetalleMaterialPOPDrawerProps {
@@ -18,11 +19,21 @@ export const DetalleMaterialPOPDrawer: React.FC<DetalleMaterialPOPDrawerProps> =
   onClose,
   material,
 }) => {
+  const { clientes, resolverPop } = useDemo();
+  const [notes, setNotes] = useState("");
+
+  // Start every review with an empty note.
+  const materialId = material?.id;
+  useEffect(() => {
+    setNotes("");
+  }, [materialId]);
+
   if (!material) return null;
 
-  const isExhibidor =
-    material.material.toLowerCase().includes("exhibidor") ||
-    material.code.toLowerCase().includes("012");
+  // Client and requester come from the client master, not from the request itself.
+  const cliente = clientes.find((c) => c.name === material.clientName);
+  const pendiente = material.status === "Pendiente";
+  const rejectBlocked = notes.trim().length === 0;
 
   return (
     <SideDrawer
@@ -31,10 +42,36 @@ export const DetalleMaterialPOPDrawer: React.FC<DetalleMaterialPOPDrawerProps> =
       title="Detalle de solicitud POP"
       width="max-w-lg"
       footer={
-        <div className="flex justify-end w-full">
-          <Button variant="secondary" onClick={onClose} className="px-6 text-xs h-9">
-            Cerrar
-          </Button>
+        <div className="flex justify-end gap-3 w-full">
+          {pendiente ? (
+            <>
+              <Button
+                variant="secondary"
+                className="px-6 text-xs h-9"
+                disabled={rejectBlocked}
+                title={rejectBlocked ? "Indica el motivo del rechazo" : undefined}
+                onClick={() => {
+                  resolverPop(material.id, "Rechazada", notes.trim());
+                  onClose();
+                }}
+              >
+                Rechazar
+              </Button>
+              <Button
+                className="px-6 text-xs h-9"
+                onClick={() => {
+                  resolverPop(material.id, "Aprobada", notes.trim());
+                  onClose();
+                }}
+              >
+                Aprobar
+              </Button>
+            </>
+          ) : (
+            <Button variant="secondary" onClick={onClose} className="px-6 text-xs h-9">
+              Cerrar
+            </Button>
+          )}
         </div>
       }
     >
@@ -60,25 +97,20 @@ export const DetalleMaterialPOPDrawer: React.FC<DetalleMaterialPOPDrawerProps> =
           <div className="flex justify-between">
             <span className="text-zinc-500">Cliente</span>
             <span className="font-semibold text-zinc-900">
-              {material.clientName.includes("CL-")
-                ? material.clientName
-                : `${material.clientName} San Borja · CL-001`}
+              {cliente ? `${cliente.name} · ${cliente.code}` : material.clientName}
             </span>
           </div>
 
           <div className="flex justify-between">
             <span className="text-zinc-500">Solicitante</span>
-            <span className="text-zinc-800">Ana Torres · Comercial</span>
-          </div>
-
-          <div className="flex justify-between">
-            <span className="text-zinc-500">Fecha</span>
-            <span className="text-zinc-800">16 oct. 2026 · 09:40</span>
+            <span className="text-zinc-800">
+              {cliente ? `${cliente.seller} · Comercial` : "Sin asignar"}
+            </span>
           </div>
 
           <div className="flex justify-between">
             <span className="text-zinc-500">Marca</span>
-            <span className="font-semibold text-zinc-900">{material.brand || "Bravery"}</span>
+            <span className="font-semibold text-zinc-900">{material.brand || "—"}</span>
           </div>
 
           <div className="flex justify-between">
@@ -95,15 +127,14 @@ export const DetalleMaterialPOPDrawer: React.FC<DetalleMaterialPOPDrawerProps> =
 
           <div className="flex justify-between">
             <span className="text-zinc-500">Motivo</span>
-            <span className="text-zinc-800">{material.reason || "Reforzar exhibición"}</span>
+            <span className="text-zinc-800">{material.reason || "—"}</span>
           </div>
         </div>
 
         <div className="border-t border-zinc-100 pt-3 space-y-1.5">
           <h4 className="text-xs font-bold text-zinc-900">Observaciones</h4>
           <div className="p-3 bg-zinc-50 border border-zinc-200/80 rounded-lg text-zinc-700 leading-relaxed">
-            {material.observations ||
-              "Solicita un exhibidor para mejorar la visibilidad de la marca en la entrada del local."}
+            {material.observations || "Sin observaciones."}
           </div>
         </div>
 
@@ -119,25 +150,25 @@ export const DetalleMaterialPOPDrawer: React.FC<DetalleMaterialPOPDrawerProps> =
             <div className="absolute inset-0 flex items-center justify-center opacity-85 pointer-events-none">
               <div className="w-36 h-36 border border-zinc-700 bg-zinc-950/80 rounded-lg flex flex-col items-center justify-between p-2 shadow-2xl">
                 <span className="text-2xs font-extrabold tracking-wider text-white bg-zinc-800 px-2 py-0.5 rounded uppercase">
-                  {material.brand || "Bravery"}
+                  {material.brand || "—"}
                 </span>
                 <div className="grid grid-cols-2 gap-1 w-full px-1">
-                  <div className="h-6 bg-zinc-800 rounded-sm flex items-center justify-center text-[9px] text-zinc-300">
+                  <div className="h-6 bg-zinc-800 rounded-sm flex items-center justify-center text-3xs text-zinc-300">
                     Prod 1
                   </div>
-                  <div className="h-6 bg-zinc-800 rounded-sm flex items-center justify-center text-[9px] text-zinc-300">
+                  <div className="h-6 bg-zinc-800 rounded-sm flex items-center justify-center text-3xs text-zinc-300">
                     Prod 2
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-1 w-full px-1">
-                  <div className="h-6 bg-zinc-800 rounded-sm flex items-center justify-center text-[9px] text-zinc-300">
+                  <div className="h-6 bg-zinc-800 rounded-sm flex items-center justify-center text-3xs text-zinc-300">
                     Prod 3
                   </div>
-                  <div className="h-6 bg-zinc-800 rounded-sm flex items-center justify-center text-[9px] text-zinc-300">
+                  <div className="h-6 bg-zinc-800 rounded-sm flex items-center justify-center text-3xs text-zinc-300">
                     Prod 4
                   </div>
                 </div>
-                <span className="text-[8px] text-zinc-400">Exhibidor Oficial</span>
+                <span className="text-3xs text-zinc-400">{material.material}</span>
               </div>
             </div>
 
@@ -145,10 +176,30 @@ export const DetalleMaterialPOPDrawer: React.FC<DetalleMaterialPOPDrawerProps> =
               <span className="text-xs font-bold text-white drop-shadow-xs">
                 {material.material} {material.brand}
               </span>
-              <span className="text-2xs text-zinc-300">Campaña retail</span>
+              <span className="text-2xs text-zinc-300">Imagen referencial</span>
             </div>
           </div>
         </div>
+
+        {/* Decisión */}
+        {pendiente && (
+          <div className="pt-2 border-t border-zinc-100 space-y-2">
+            <div className="flex justify-between items-center">
+              <label className="text-xs font-bold text-zinc-900">
+                Observaciones de la decisión (obligatorio al rechazar)
+              </label>
+              <span className="text-2xs text-zinc-400">{notes.length}/250</span>
+            </div>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={3}
+              maxLength={250}
+              placeholder="Indica el motivo de la decisión"
+              className="w-full rounded-md border border-zinc-200 bg-white p-2.5 text-xs text-zinc-900 focus:outline-none focus:border-zinc-900"
+            />
+          </div>
+        )}
 
         {/* Historial */}
         <div className="space-y-2.5 pt-2 border-t border-zinc-100">
@@ -157,12 +208,24 @@ export const DetalleMaterialPOPDrawer: React.FC<DetalleMaterialPOPDrawerProps> =
           <div className="space-y-2 pl-1">
             <div className="flex items-center gap-2.5 text-2xs text-zinc-700">
               <span className="w-2 h-2 rounded-full bg-zinc-900 shrink-0" />
-              <span>16 oct. 2026 · 09:40 — Registrada desde la app comercial</span>
+              <span>Registrada desde la app comercial</span>
             </div>
 
-            <div className="flex items-center gap-2.5 text-2xs text-zinc-500">
-              <span className="w-2 h-2 rounded-full bg-zinc-300 shrink-0" />
-              <span>Pendiente de revisión</span>
+            <div
+              className={`flex items-center gap-2.5 text-2xs ${
+                pendiente ? "text-zinc-500" : "text-zinc-700"
+              }`}
+            >
+              <span
+                className={`w-2 h-2 rounded-full shrink-0 ${pendiente ? "bg-zinc-300" : "bg-zinc-900"}`}
+              />
+              <span>
+                {pendiente
+                  ? "Pendiente de revisión"
+                  : `${material.status} por supervisión${
+                      material.decisionNotes ? `: ${material.decisionNotes}` : ""
+                    }`}
+              </span>
             </div>
           </div>
 

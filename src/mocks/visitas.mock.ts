@@ -1,149 +1,103 @@
-export interface MockAgendaItem {
-  id: string;
-  timeSlot: string;
-  clientName: string;
-  seller: string;
-  district: string;
-  date: string;
-  status: "programada" | "en_curso" | "completada";
+import type {
+  AgendaSlot,
+  JornadaSummary,
+  RegistroVisita,
+} from "@/modules/comercial/visitas-jornadas/models/visita.model";
+import { withProgress } from "@/modules/comercial/visitas-jornadas/lib/progress";
+import { CLIENTES_MOCK } from "./clientes.mock";
+
+const cliente = (id: string) => {
+  const found = CLIENTES_MOCK.find((c) => c.id === id);
+  if (!found) throw new Error(`Cliente no existe en el maestro: ${id}`);
+  return found;
+};
+
+const TODAY = "16 oct. 2026";
+
+function agenda(
+  id: string,
+  clientId: string,
+  timeSlot: string,
+  status: AgendaSlot["status"]
+): AgendaSlot {
+  const c = cliente(clientId);
+  return {
+    id,
+    clientId,
+    timeSlot,
+    clientName: c.name,
+    seller: c.seller,
+    district: c.district,
+    date: TODAY,
+    status,
+  };
 }
 
-export interface MockJornada {
-  id: string;
-  seller: string;
-  startTime: string;
-  completedVisits: number;
-  totalVisits: number;
-  status: "En jornada" | "Interrumpida" | "Sin iniciar";
-}
-
-export interface MockRegistroVisita {
-  id: string;
-  code: string;
-  clientName: string;
-  seller: string;
-  date: string;
-  result: "Con pedido" | "Sin compra" | "Local cerrado";
-  evidenceCount: number;
-  checkIn: string;
-  checkOut: string;
-  duration: string;
-  observations: string;
-  orderCode?: string;
-}
-
-export const AGENDA_MOCK: MockAgendaItem[] = [
-  {
-    id: "ag-01",
-    timeSlot: "09:00 - 10:00",
-    clientName: "Pet Market",
-    seller: "Ana Torres",
-    district: "San Borja",
-    date: "16 oct. 2026",
-    status: "completada",
-  },
-  {
-    id: "ag-02",
-    timeSlot: "11:00 - 12:00",
-    clientName: "Mundo Animal",
-    seller: "Luis Ramos",
-    district: "Miraflores",
-    date: "16 oct. 2026",
-    status: "en_curso",
-  },
-  {
-    id: "ag-03",
-    timeSlot: "14:00 - 15:00",
-    clientName: "Mascotas y Más",
-    seller: "Carlos Díaz",
-    district: "Surco",
-    date: "16 oct. 2026",
-    status: "programada",
-  },
-  {
-    id: "ag-04",
-    timeSlot: "16:00 - 17:00",
-    clientName: "Clínica Veterinaria San Miguel",
-    seller: "Ana Torres",
-    district: "San Miguel",
-    date: "16 oct. 2026",
-    status: "programada",
-  },
+export const AGENDA_MOCK: AgendaSlot[] = [
+  agenda("ag-01", "cl-001", "09:00 - 10:00", "completada"),
+  agenda("ag-02", "cl-002", "10:00 - 11:00", "completada"),
+  agenda("ag-03", "cl-006", "11:00 - 12:00", "completada"),
+  agenda("ag-04", "cl-004", "14:00 - 15:00", "programada"),
+  agenda("ag-05", "cl-003", "15:00 - 16:00", "programada"),
+  agenda("ag-06", "cl-005", "16:00 - 17:00", "programada"),
 ];
 
-export const JORNADAS_MOCK: MockJornada[] = [
-  { id: "j-01", seller: "Ana Torres", startTime: "08:00", completedVisits: 3, totalVisits: 5, status: "En jornada" },
-  { id: "j-02", seller: "Luis Ramos", startTime: "08:10", completedVisits: 1, totalVisits: 4, status: "Interrumpida" },
-  { id: "j-03", seller: "Carlos Díaz", startTime: "08:15", completedVisits: 0, totalVisits: 4, status: "Sin iniciar" },
-  { id: "j-04", seller: "María López", startTime: "08:05", completedVisits: 2, totalVisits: 5, status: "En jornada" },
-  { id: "j-05", seller: "Jorge Ramírez", startTime: "08:20", completedVisits: 1, totalVisits: 3, status: "En jornada" },
-];
+/** Base workday data; visit counts are derived from the agenda (see withProgress). */
+export const JORNADAS_MOCK: JornadaSummary[] = withProgress(
+  [
+    { id: "j-01", seller: "Ana Torres", startTime: "08:00", completedVisits: 0, totalVisits: 0, status: "En jornada" },
+    { id: "j-02", seller: "Luis Ramos", startTime: "08:10", completedVisits: 0, totalVisits: 0, status: "Finalizada" },
+    { id: "j-03", seller: "Carlos Díaz", startTime: "08:15", completedVisits: 0, totalVisits: 0, status: "Sin iniciar" },
+    { id: "j-04", seller: "Carlos Rojas", startTime: "08:05", completedVisits: 0, totalVisits: 0, status: "Finalizada" },
+    { id: "j-05", seller: "Lucía Mendoza", startTime: "08:20", completedVisits: 0, totalVisits: 0, status: "Interrumpida" },
+  ],
+  AGENDA_MOCK
+);
 
-export const REGISTROS_VISITA_MOCK: MockRegistroVisita[] = [
-  {
-    id: "vis-018",
-    code: "VIS-018",
-    clientName: "Pet Market",
-    seller: "Ana Torres",
-    date: "16 oct. 2026",
-    result: "Con pedido",
-    evidenceCount: 2,
-    checkIn: "09:10",
-    checkOut: "09:35",
-    duration: "25 min",
-    observations: "Buena recepción de la promoción. Interesados en ampliar surtido.",
-    orderCode: "PED-1042",
-  },
-  {
-    id: "vis-019",
-    code: "VIS-019",
-    clientName: "Mundo Animal",
-    seller: "Luis Ramos",
-    date: "16 oct. 2026",
-    result: "Sin compra",
-    evidenceCount: 1,
-    checkIn: "11:05",
-    checkOut: "11:30",
-    duration: "25 min",
-    observations: "Stock suficiente en tienda por 15 días.",
-  },
-  {
-    id: "vis-020",
-    code: "VIS-020",
-    clientName: "Mascotas y Más",
-    seller: "Carlos Díaz",
-    date: "15 oct. 2026",
-    result: "Local cerrado",
-    evidenceCount: 1,
-    checkIn: "14:10",
-    checkOut: "14:15",
-    duration: "5 min",
-    observations: "Local en remodelación de fachada.",
-  },
-  {
-    id: "vis-017",
-    code: "VIS-017",
-    clientName: "Clínica Vet. San Miguel",
-    seller: "Ana Torres",
-    date: "15 oct. 2026",
-    result: "Con pedido",
-    evidenceCount: 3,
-    checkIn: "15:30",
-    checkOut: "16:10",
-    duration: "40 min",
-    observations: "Pedido formalizado con pago al contado.",
-  },
-  {
-    id: "vis-016",
-    code: "VIS-016",
-    clientName: "Agrovet San Miguel",
-    seller: "Luis Ramos",
-    date: "14 oct. 2026",
-    result: "Sin compra",
-    evidenceCount: 1,
-    checkIn: "10:00",
-    checkOut: "10:20",
-    duration: "20 min",
-    observations: "Esperando pago de clientes finales.",
-  },
+function registro(
+  number: number,
+  clientId: string,
+  date: string,
+  result: RegistroVisita["result"],
+  checkIn: string,
+  checkOut: string,
+  duration: string,
+  evidenceCount: number,
+  observations: string,
+  orderCode?: string
+): RegistroVisita {
+  const c = cliente(clientId);
+  return {
+    id: `vis-${String(number).padStart(3, "0")}`,
+    code: `VIS-${String(number).padStart(3, "0")}`,
+    clientId,
+    clientName: c.name,
+    seller: c.seller,
+    date,
+    result,
+    evidenceCount,
+    checkIn,
+    checkOut,
+    duration,
+    observations,
+    orderCode,
+  };
+}
+
+/*
+ * Every "Con pedido" visit points at a real order created during that visit
+ * (check-in <= order time <= check-out), and every order has its visit.
+ */
+export const REGISTROS_VISITA_MOCK: RegistroVisita[] = [
+  registro(20, "cl-002", TODAY, "Sin compra", "10:05", "10:40", "35 min", 1, "Pidió retomar el pedido la próxima semana."),
+  registro(19, "cl-006", TODAY, "Sin compra", "11:05", "11:30", "25 min", 1, "Aún tiene stock suficiente por esta semana."),
+  registro(18, "cl-001", TODAY, "Con pedido", "09:10", "09:45", "35 min", 2, "Cliente conforme con el pedido. Interés en más stock para próxima visita.", "PED-1042"),
+  registro(17, "cl-005", "15 oct. 2026", "Con pedido", "15:30", "16:15", "45 min", 3, "Pedido formalizado con pago al contado.", "PED-1040"),
+  registro(16, "cl-003", "15 oct. 2026", "Con pedido", "16:50", "17:25", "35 min", 2, "Pedido de reposición de alimento premium.", "PED-1041"),
+  registro(15, "cl-002", "14 oct. 2026", "Con pedido", "12:00", "12:55", "55 min", 2, "Pedido de reposición con pago al contado.", "PED-1039"),
+  registro(14, "cl-004", "15 oct. 2026", "Local cerrado", "14:10", "14:15", "5 min", 1, "Local en remodelación de fachada."),
+  registro(13, "cl-004", "13 oct. 2026", "Con pedido", "14:00", "14:45", "45 min", 2, "Pedido generado a partir de la cotización COT-1040.", "PED-1037"),
+  registro(12, "cl-006", "12 oct. 2026", "Con pedido", "15:40", "16:35", "55 min", 2, "Depósito en efectivo reportado al cierre de la visita.", "PED-1035"),
+  registro(11, "cl-001", "10 oct. 2026", "Con pedido", "10:50", "11:55", "65 min", 2, "Pedido de alimento para gatos.", "PED-1031"),
+  registro(10, "cl-001", "02 oct. 2026", "Con pedido", "10:20", "11:10", "50 min", 2, "Pedido de alimento para cachorros.", "PED-1018"),
 ];

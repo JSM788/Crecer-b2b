@@ -216,7 +216,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Footer info in Mobile drawer */}
         <div className="p-3 border-t border-zinc-100 bg-zinc-50/50 text-center">
-          <p className="text-[11px] text-zinc-400">Aquamundo B2B · v1.0</p>
+          <p className="text-2xs text-zinc-400">Aquamundo B2B · v1.0</p>
         </div>
       </aside>
     </>

@@ -2,20 +2,18 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { Calendar } from "lucide-react";
 import { DataTable, Column } from "@/shared/patterns/DataTable";
 import { FilterBar } from "@/shared/patterns/FilterBar";
 import { Select } from "@/shared/components/ui/select";
 import { Button } from "@/shared/components/ui/button";
 import { Badge } from "@/shared/components/ui/badge";
 import { formatCurrency } from "@/shared/lib/utils";
+import { optionsFrom } from "@/shared/lib/options";
+import { useDemo } from "@/shared/state/demo-store";
 import { Cotizacion } from "../models/venta.model";
 
-interface CotizacionesTableProps {
-  cotizaciones: Cotizacion[];
-}
-
-export const CotizacionesTable: React.FC<CotizacionesTableProps> = ({ cotizaciones }) => {
+export const CotizacionesTable: React.FC = () => {
+  const { cotizaciones } = useDemo();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("Todos");
   const [seller, setSeller] = useState("Todos");
@@ -96,8 +94,6 @@ export const CotizacionesTable: React.FC<CotizacionesTableProps> = ({ cotizacion
         searchValue={search}
         onSearchChange={setSearch}
         searchPlaceholder="Buscar por código o cliente..."
-        hasMoreFilters
-        onToggleMoreFilters={() => {}}
       >
         <div className="w-36">
           <Select
@@ -113,22 +109,12 @@ export const CotizacionesTable: React.FC<CotizacionesTableProps> = ({ cotizacion
           />
         </div>
 
-        <div className="flex items-center gap-2 px-3 py-1.5 border border-zinc-200 rounded-md text-xs font-medium bg-white text-zinc-800 self-end h-9">
-          <Calendar className="h-4 w-4 text-zinc-500" />
-          <span>16 oct. 2026</span>
-        </div>
-
         <div className="w-40">
           <Select
             label="Vendedor"
             value={seller}
             onChange={(e) => setSeller(e.target.value)}
-            options={[
-              { label: "Todos", value: "Todos" },
-              { label: "Ana Torres", value: "Ana Torres" },
-              { label: "Luis Ramos", value: "Luis Ramos" },
-              { label: "Carlos Díaz", value: "Carlos Díaz" },
-            ]}
+            options={optionsFrom(cotizaciones.map((c) => c.seller))}
           />
         </div>
       </FilterBar>

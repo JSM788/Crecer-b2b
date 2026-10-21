@@ -6,6 +6,7 @@ import { DataTable, Column } from "@/shared/patterns/DataTable";
 import { FilterBar } from "@/shared/patterns/FilterBar";
 import { Select } from "@/shared/components/ui/select";
 import { Badge } from "@/shared/components/ui/badge";
+import { formatCurrency } from "@/shared/lib/utils";
 import { Button } from "@/shared/components/ui/button";
 import { CuentaPorCobrar } from "../models/finanzas.model";
 import { ExternalLink, PhoneCall } from "lucide-react";
@@ -57,7 +58,7 @@ export const CuentasPorCobrarTable: React.FC<CuentasPorCobrarTableProps> = ({
       width: "15%",
       cell: (row) => (
         <span className="text-zinc-700 font-medium">
-          S/ {row.creditLimit.toLocaleString("es-PE", { minimumFractionDigits: 2 })}
+          {formatCurrency(row.creditLimit)}
         </span>
       ),
     },
@@ -68,7 +69,7 @@ export const CuentasPorCobrarTable: React.FC<CuentasPorCobrarTableProps> = ({
       width: "15%",
       cell: (row) => (
         <span className="font-extrabold text-zinc-950">
-          S/ {row.totalDebt.toLocaleString("es-PE", { minimumFractionDigits: 2 })}
+          {formatCurrency(row.totalDebt)}
         </span>
       ),
     },
@@ -78,7 +79,7 @@ export const CuentasPorCobrarTable: React.FC<CuentasPorCobrarTableProps> = ({
       width: "12%",
       cell: (row) => (
         <span className="text-zinc-600">
-          S/ {row.currentDebt.toLocaleString("es-PE", { minimumFractionDigits: 2 })}
+          {formatCurrency(row.currentDebt)}
         </span>
       ),
     },
@@ -94,7 +95,7 @@ export const CuentasPorCobrarTable: React.FC<CuentasPorCobrarTableProps> = ({
             }
           >
             {vencido > 0
-              ? `S/ ${vencido.toLocaleString("es-PE", { minimumFractionDigits: 2 })}`
+              ? formatCurrency(vencido)
               : "S/ 0.00"}
           </span>
         );

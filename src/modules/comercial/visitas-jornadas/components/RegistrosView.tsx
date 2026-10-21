@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
-import { Calendar } from "lucide-react";
+import React, { useMemo, useState } from "react";
 import { DataTable, Column } from "@/shared/patterns/DataTable";
+import { optionsFrom } from "@/shared/lib/options";
+import { toSortKey } from "@/shared/lib/date";
 import { FilterBar } from "@/shared/patterns/FilterBar";
 import { Select } from "@/shared/components/ui/select";
 import { Button } from "@/shared/components/ui/button";
@@ -18,18 +19,32 @@ export const RegistrosView: React.FC<RegistrosViewProps> = ({ registros }) => {
   const [search, setSearch] = useState("");
   const [seller, setSeller] = useState("Todos");
   const [result, setResult] = useState("Todos");
+  const [date, setDate] = useState("Todos");
   const [selectedRegistro, setSelectedRegistro] = useState<RegistroVisita | null>(null);
 
-  const filtered = registros.filter((r) => {
-    const matchesSearch =
-      !search ||
-      r.clientName.toLowerCase().includes(search.toLowerCase()) ||
-      r.code.toLowerCase().includes(search.toLowerCase());
-    const matchesSeller = seller === "Todos" || r.seller === seller;
-    const matchesResult = result === "Todos" || r.result === result;
+  const sellerOptions = useMemo(() => optionsFrom(registros.map((r) => r.seller)), [registros]);
+  const dateOptions = useMemo(() => {
+    const dates = Array.from(new Set(registros.map((r) => r.date)));
+    dates.sort((a, b) => toSortKey(b) - toSortKey(a));
+    return [
+      { label: "Todas", value: "Todos" },
+      ...dates.map((d) => ({ label: d, value: d })),
+    ];
+  }, [registros]);
 
-    return matchesSearch && matchesSeller && matchesResult;
-  });
+  const filtered = registros
+    .filter((r) => {
+      const matchesSearch =
+        !search ||
+        r.clientName.toLowerCase().includes(search.toLowerCase()) ||
+        r.code.toLowerCase().includes(search.toLowerCase());
+      const matchesSeller = seller === "Todos" || r.seller === seller;
+      const matchesResult = result === "Todos" || r.result === result;
+      const matchesDate = date === "Todos" || r.date === date;
+
+      return matchesSearch && matchesSeller && matchesResult && matchesDate;
+    })
+    .sort((a, b) => toSortKey(b.date, b.checkIn) - toSortKey(a.date, a.checkIn));
 
   const columns: Column<RegistroVisita>[] = [
     {
@@ -91,25 +106,24 @@ export const RegistrosView: React.FC<RegistrosViewProps> = ({ registros }) => {
       <FilterBar
         searchValue={search}
         onSearchChange={setSearch}
-        searchPlaceholder="Buscar por cliente..."
+        searchPlaceholder="Buscar por cliente o código..."
       >
         <div className="w-40">
           <Select
             label="Vendedor"
             value={seller}
             onChange={(e) => setSeller(e.target.value)}
-            options={[
-              { label: "Todos", value: "Todos" },
-              { label: "Ana Torres", value: "Ana Torres" },
-              { label: "Luis Ramos", value: "Luis Ramos" },
-              { label: "Carlos Díaz", value: "Carlos Díaz" },
-            ]}
+            options={sellerOptions}
           />
         </div>
 
-        <div className="flex items-center gap-2 px-3 py-1.5 border border-zinc-200 rounded-md text-xs font-medium bg-white text-zinc-800 self-end h-9">
-          <Calendar className="h-4 w-4 text-zinc-500" />
-          <span>16 oct. 2026</span>
+        <div className="w-40">
+          <Select
+            label="Fecha"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            options={dateOptions}
+          />
         </div>
 
         <div className="w-36">

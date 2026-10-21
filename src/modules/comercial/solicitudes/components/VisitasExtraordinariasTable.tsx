@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
-import { Calendar } from "lucide-react";
+import React, { useMemo, useState } from "react";
 import { DataTable, Column } from "@/shared/patterns/DataTable";
 import { FilterBar } from "@/shared/patterns/FilterBar";
 import { Select } from "@/shared/components/ui/select";
 import { Button } from "@/shared/components/ui/button";
 import { Badge } from "@/shared/components/ui/badge";
+import { optionsFrom } from "@/shared/lib/options";
+import { useDemo } from "@/shared/state/demo-store";
 import { VisitaExtraordinaria } from "../models/solicitud.model";
 import { RevisarSolicitudDrawer } from "./RevisarSolicitudDrawer";
 
@@ -16,14 +17,17 @@ interface VisitasExtraordinariasTableProps {
 }
 
 export const VisitasExtraordinariasTable: React.FC<VisitasExtraordinariasTableProps> = ({
-  solicitudes: initialSolicitudes,
-  onOpenNew,
+  solicitudes,
 }) => {
-  const [solicitudes, setSolicitudes] = useState<VisitaExtraordinaria[]>(initialSolicitudes);
+  const { resolverVisitaExtra } = useDemo();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("Todos");
   const [seller, setSeller] = useState("Todos");
-  const [selectedItem, setSelectedItem] = useState<VisitaExtraordinaria | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  // Read the live row so the drawer shows the decision right after it is saved.
+  const selectedItem = solicitudes.find((s) => s.id === selectedId) ?? null;
+  const sellerOptions = useMemo(() => optionsFrom(solicitudes.map((s) => s.seller)), [solicitudes]);
 
   const filtered = solicitudes.filter((s) => {
     const matchesSearch =
@@ -38,10 +42,7 @@ export const VisitasExtraordinariasTable: React.FC<VisitasExtraordinariasTablePr
 
   const handleDecision = (action: "aprobar" | "rechazar", notes: string) => {
     if (!selectedItem) return;
-    const newStatus = action === "aprobar" ? "Aprobada" : "Rechazada";
-    setSolicitudes((prev) =>
-      prev.map((s) => (s.id === selectedItem.id ? { ...s, status: newStatus } : s))
-    );
+    resolverVisitaExtra(selectedItem.id, action === "aprobar" ? "Aprobada" : "Rechazada", notes);
   };
 
   const columns: Column<VisitaExtraordinaria>[] = [
@@ -58,6 +59,14 @@ export const VisitasExtraordinariasTable: React.FC<VisitasExtraordinariasTablePr
     {
       header: "Solicitante",
       accessorKey: "seller",
+    },
+    {
+      header: "Fecha solicitada",
+      cell: (row) => (
+        <span>
+          {row.date}, {row.hour}
+        </span>
+      ),
     },
     {
       header: "Motivo",
@@ -83,9 +92,9 @@ export const VisitasExtraordinariasTable: React.FC<VisitasExtraordinariasTablePr
           size="sm"
           variant="secondary"
           className="h-7 text-xs px-3"
-          onClick={() => setSelectedItem(row)}
+          onClick={() => setSelectedId(row.id)}
         >
-          Ver
+          {row.status === "Pendiente" ? "Revisar" : "Ver"}
         </Button>
       ),
     },
@@ -117,17 +126,8 @@ export const VisitasExtraordinariasTable: React.FC<VisitasExtraordinariasTablePr
             label="Solicitante"
             value={seller}
             onChange={(e) => setSeller(e.target.value)}
-            options={[
-              { label: "Todos", value: "Todos" },
-              { label: "Ana Torres", value: "Ana Torres" },
-              { label: "Luis Ramos", value: "Luis Ramos" },
-            ]}
+            options={sellerOptions}
           />
-        </div>
-
-        <div className="flex items-center gap-2 px-3 py-1.5 border border-zinc-200 rounded-md text-xs font-medium bg-white text-zinc-800 self-end h-9">
-          <Calendar className="h-4 w-4 text-zinc-500" />
-          <span>10 mar. 2025 - 16 mar. 2025</span>
         </div>
       </FilterBar>
 
@@ -140,7 +140,7 @@ export const VisitasExtraordinariasTable: React.FC<VisitasExtraordinariasTablePr
 
       <RevisarSolicitudDrawer
         isOpen={!!selectedItem}
-        onClose={() => setSelectedItem(null)}
+        onClose={() => setSelectedId(null)}
         solicitud={selectedItem}
         onDecide={handleDecision}
       />

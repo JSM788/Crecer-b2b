@@ -1,24 +1,13 @@
 "use client";
 
 import React, { useState } from "react";
-import Link from "next/link";
-import { Plus } from "lucide-react";
 import { DashboardShell } from "@/shared/layout/DashboardShell";
 import { PageHeader } from "@/shared/patterns/PageHeader";
 import { Tabs } from "@/shared/components/ui/tabs";
-import { Button } from "@/shared/components/ui/button";
-import {
-  getCotizaciones,
-  getPedidos,
-  CotizacionesTable,
-  PedidosTable,
-} from "@/modules/comercial/ventas";
+import { CotizacionesTable, PedidosTable } from "@/modules/comercial/ventas";
 
 export default function VentasPage() {
   const [activeTab, setActiveTab] = useState("cotizaciones");
-
-  const cotizaciones = getCotizaciones();
-  const pedidos = getPedidos();
 
   const tabs = [
     { id: "cotizaciones", label: "Cotizaciones" },
@@ -34,9 +23,10 @@ export default function VentasPage() {
             { label: "Ventas" },
           ]}
           title="Ventas"
-          subtitle="Gestiona cotizaciones y pedidos de clientes"
+          subtitle="Supervisa las cotizaciones y pedidos que registran los comerciales desde la app"
           actions={
             /* Ocultado temporalmente: acción ejecutada en App Móvil / ERP (SAP/Defontana)
+            // Al reactivar, importar: Link (next/link), Plus (lucide-react) y Button (ui/button)
             activeTab === "cotizaciones" ? (
               <Link href="/comercial/ventas/cotizaciones/nueva/">
                 <Button size="sm">
@@ -57,11 +47,7 @@ export default function VentasPage() {
 
         <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
 
-        {activeTab === "cotizaciones" ? (
-          <CotizacionesTable cotizaciones={cotizaciones} />
-        ) : (
-          <PedidosTable pedidos={pedidos} />
-        )}
+        {activeTab === "cotizaciones" ? <CotizacionesTable /> : <PedidosTable />}
       </div>
     </DashboardShell>
   );

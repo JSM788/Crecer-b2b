@@ -1,22 +1,29 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Plus } from "lucide-react";
 import { DashboardShell } from "@/shared/layout/DashboardShell";
 import { PageHeader } from "@/shared/patterns/PageHeader";
 import { Tabs } from "@/shared/components/ui/tabs";
 import { Button } from "@/shared/components/ui/button";
 import {
-  getClientes,
   ClientesCarteraTable,
   ClientesAsignacionesTable,
   NuevoClienteModal,
 } from "@/modules/comercial/clientes";
+import { useDemo, useSellerNames } from "@/shared/state/demo-store";
 
 export default function ClientesPage() {
   const [activeTab, setActiveTab] = useState("cartera");
   const [isNuevoClienteOpen, setIsNuevoClienteOpen] = useState(false);
-  const clientes = getClientes();
+  const { clientes, agregarCliente } = useDemo();
+  const sellers = useSellerNames();
+
+  const districts = useMemo(
+    () => Array.from(new Set(clientes.map((c) => c.district))).sort((a, b) => a.localeCompare(b, "es")),
+    [clientes]
+  );
+  const rucs = useMemo(() => clientes.map((c) => c.ruc), [clientes]);
 
   const tabs = [
     { id: "cartera", label: "Cartera" },
@@ -46,6 +53,10 @@ export default function ClientesPage() {
         <NuevoClienteModal
           isOpen={isNuevoClienteOpen}
           onClose={() => setIsNuevoClienteOpen(false)}
+          onSave={agregarCliente}
+          districts={districts}
+          sellers={sellers}
+          existingRucs={rucs}
         />
       </div>
     </DashboardShell>

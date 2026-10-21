@@ -4,7 +4,9 @@ import React from "react";
 import Link from "next/link";
 import { SideDrawer } from "@/shared/components/ui/side-drawer";
 import { Button } from "@/shared/components/ui/button";
-import { MapPin, ShoppingBag, Calendar, User, Camera } from "lucide-react";
+import { Badge } from "@/shared/components/ui/badge";
+import { useDemo } from "@/shared/state/demo-store";
+import { MapPin, ShoppingBag, Calendar, User } from "lucide-react";
 import { RegistroVisita } from "../models/visita.model";
 
 interface RegistroVisitaDrawerProps {
@@ -13,12 +15,23 @@ interface RegistroVisitaDrawerProps {
   registro: RegistroVisita | null;
 }
 
+const RESULT_VARIANT = {
+  "Con pedido": "success",
+  "Sin compra": "neutral",
+  "Local cerrado": "warning",
+} as const;
+
 export const RegistroVisitaDrawer: React.FC<RegistroVisitaDrawerProps> = ({
   isOpen,
   onClose,
   registro,
 }) => {
+  const { clientes } = useDemo();
+
   if (!registro) return null;
+
+  const cliente = clientes.find((c) => c.id === registro.clientId);
+  const evidenceTiles = Array.from({ length: registro.evidenceCount }, (_, i) => i + 1);
 
   return (
     <SideDrawer
@@ -30,7 +43,7 @@ export const RegistroVisitaDrawer: React.FC<RegistroVisitaDrawerProps> = ({
           <Button variant="secondary" onClick={onClose}>
             Cerrar
           </Button>
-          <Link href="/comercial/clientes/cl-001/">
+          <Link href={`/comercial/clientes/${registro.clientId}/`}>
             <Button>Ver cliente</Button>
           </Link>
         </div>
@@ -46,10 +59,13 @@ export const RegistroVisitaDrawer: React.FC<RegistroVisitaDrawerProps> = ({
             </span>
           </div>
           <div className="flex items-center justify-between text-zinc-500">
-            <span>RUC 20601234567</span>
+            <span>{cliente ? `RUC ${cliente.ruc}` : registro.clientId}</span>
             <span className="flex items-center gap-1 text-zinc-700">
               <User className="h-3.5 w-3.5" /> {registro.seller}
             </span>
+          </div>
+          <div className="pt-1">
+            <Badge variant={RESULT_VARIANT[registro.result]}>{registro.result}</Badge>
           </div>
         </div>
 
@@ -72,42 +88,49 @@ export const RegistroVisitaDrawer: React.FC<RegistroVisitaDrawerProps> = ({
         {/* Photographic Evidence */}
         <div>
           <label className="block text-xs font-semibold text-zinc-800 mb-1.5">
-            Evidencia fotográfica
+            Evidencia fotográfica ({registro.evidenceCount})
           </label>
-          <div className="grid grid-cols-2 gap-2">
-            <div className="h-28 rounded-lg bg-zinc-800 text-white p-2 flex flex-col justify-between relative overflow-hidden">
-              <div className="bg-black/60 backdrop-blur-xs p-1 rounded text-2xs inline-block self-start">
-                16 oct. 2026 09:24 | San Borja
-              </div>
-              <div className="flex items-center gap-1 text-2xs text-emerald-400">
-                <MapPin className="h-3 w-3" /> GPS registrado
-              </div>
+          {evidenceTiles.length === 0 ? (
+            <p className="text-2xs text-zinc-500">Esta visita no tiene evidencia fotográfica.</p>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              {evidenceTiles.map((n) => (
+                <div
+                  key={n}
+                  className="h-28 rounded-lg bg-zinc-800 text-white p-2 flex flex-col justify-between relative overflow-hidden"
+                >
+                  <div className="bg-black/60 backdrop-blur-xs p-1 rounded text-2xs inline-block self-start">
+                    Foto {n} | {registro.date} {registro.checkIn}
+                    {cliente ? ` | ${cliente.district}` : ""}
+                  </div>
+                  <div className="flex items-center gap-1 text-2xs text-emerald-400">
+                    <MapPin className="h-3 w-3" /> GPS registrado
+                  </div>
+                </div>
+              ))}
             </div>
-
-            <div className="h-28 rounded-lg bg-zinc-800 text-white p-2 flex flex-col justify-between relative overflow-hidden">
-              <div className="bg-black/60 backdrop-blur-xs p-1 rounded text-2xs inline-block self-start">
-                16 oct. 2026 09:24 | San Borja
-              </div>
-              <div className="flex items-center gap-1 text-2xs text-emerald-400">
-                <MapPin className="h-3 w-3" /> GPS registrado
-              </div>
-            </div>
-          </div>
+          )}
         </div>
 
-        {/* GPS location card */}
-        <div className="p-3 bg-zinc-50 border border-zinc-200 rounded-lg flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <MapPin className="h-4 w-4 text-zinc-500" />
-            <div>
-              <p className="text-xs font-semibold text-zinc-900">Ubicación y precisión GPS</p>
-              <p className="text-2xs text-zinc-500">-12.0958, -76.9852 (Precisión: 12 m)</p>
+        {/* Visit location, taken from the client master */}
+        {cliente && (
+          <div className="p-3 bg-zinc-50 border border-zinc-200 rounded-lg flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-zinc-500" />
+              <div>
+                <p className="text-xs font-semibold text-zinc-900">Ubicación de la visita</p>
+                <p className="text-2xs text-zinc-500">
+                  {cliente.address}, {cliente.district}
+                </p>
+              </div>
             </div>
+            {/* Ocultado temporalmente: el mapa con coordenadas GPS llega con la integración de la app móvil
+            <Button variant="secondary" size="sm" className="h-7 text-xs">
+              Ver en mapa
+            </Button>
+            */}
           </div>
-          <Button variant="secondary" size="sm" className="h-7 text-xs">
-            Ver en mapa
-          </Button>
-        </div>
+        )}
 
         {/* Observations */}
         <div>
