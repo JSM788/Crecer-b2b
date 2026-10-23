@@ -1,5 +1,7 @@
 # Aquamundo — Plataforma B2B Comercial (Crecer B2B)
 
+Mobile app: [setup and demo scope](mobile/README.md) · [agent documentation index](mobile/docs/README.md).
+
 Maqueta frontend navegable de alta fidelidad visual y arquitectura limpia para plataforma B2B de gestión comercial. Desarrollada siguiendo las especificaciones del brief técnico y las capturas de diseño de referencia.
 
 ---
