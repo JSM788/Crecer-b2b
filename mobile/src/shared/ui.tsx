@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   Modal,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -9,13 +10,12 @@ import {
   type ViewStyle,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Redirect, router } from "expo-router";
+import { Redirect, router, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { copy } from "@/config/copy";
 import { routes } from "@/config/routes";
 import { environment } from "@/config/environment";
-import { demoProfile } from "@/data/fixtures";
-import { useDemo } from "./DemoProvider";
+import { useField } from "./FieldProvider";
 import { theme } from "./theme";
 import { BrandMark } from "./BrandMark";
 
@@ -43,6 +43,8 @@ export function Button({
   secondary?: boolean;
   icon?: React.ComponentProps<typeof Ionicons>["name"];
 }) {
+  const { state } = useField();
+  disabled = disabled || state.loading;
   return (
     <Pressable
       accessibilityRole="button"
@@ -126,12 +128,23 @@ export function Fact({
   );
 }
 export function ErrorNotice() {
-  const { state } = useDemo();
-  return state.error ? (
+  const { state, refresh, retry } = useField();
+  return state.error || state.uncertain ? (
     <View accessibilityRole="alert" style={styles.error}>
       <Text style={styles.errorText}>
-        {copy.errors[state.error] ?? copy.common.error}
+        {copy.errors[state.error ?? "uncertain_action_pending"] ??
+          copy.common.error}
       </Text>
+      <Button
+        secondary
+        label={copy.common.retry}
+        onPress={() => {
+          void refresh();
+        }}
+      />
+      {state.uncertain && (
+        <Button label={copy.common.retryAction} onPress={retry} />
+      )}
     </View>
   ) : null;
 }
@@ -156,8 +169,17 @@ export function Screen({
   footer?: React.ReactNode;
   authenticated?: boolean;
 }) {
-  const { state, dispatch } = useDemo();
+  const { state, dispatch, refresh } = useField();
   const [profileOpen, setProfileOpen] = useState(false);
+  useFocusEffect(useCallback(() => {
+    if (authenticated && state.authenticated) void refresh("focus");
+  }, [authenticated, state.authenticated, refresh]));
+  if (state.loading && !state.ready)
+    return (
+      <SafeAreaView style={styles.safe}>
+        <Text style={styles.body}>{copy.common.loading}</Text>
+      </SafeAreaView>
+    );
   if (authenticated && !state.authenticated)
     return <Redirect href={routes.login} />;
   return (
@@ -179,13 +201,23 @@ export function Screen({
                 <Icon name="person-outline" size={26} />
               </View>
               <View>
-                <Text style={styles.profileName}>{demoProfile.name}</Text>
-                <Text style={styles.profileRole}>{demoProfile.role}</Text>
+                <Text
+                  numberOfLines={1}
+                  style={[styles.profileName, { maxWidth: 145 }]}
+                >
+                  {state.session?.email}
+                </Text>
+                <Text style={styles.profileRole}>
+                  {state.session?.role === "merchandiser"
+                    ? copy.merchandiser
+                    : copy.role}
+                </Text>
               </View>
             </Pressable>
           </View>
         )}
         <ScrollView
+          refreshControl={authenticated ? <RefreshControl refreshing={state.refreshing} onRefresh={() => {void refresh();}} /> : undefined}
           contentContainerStyle={[styles.content, back && styles.detailContent]}
           keyboardShouldPersistTaps="handled"
         >
@@ -207,9 +239,9 @@ export function Screen({
             {description && <Body muted>{description}</Body>}
           </View>
           <ErrorNotice />
-          {children}
+          {state.ready && children}
         </ScrollView>
-        {footer && <View style={styles.footer}>{footer}</View>}
+        {footer && state.ready && <View style={styles.footer}>{footer}</View>}
         {tab && (
           <View style={styles.tabs}>
             {(["workday", "agenda"] as const).map((item) => (
@@ -256,17 +288,9 @@ export function Screen({
                 label={copy.common.logout}
                 onPress={() => {
                   setProfileOpen(false);
-                  dispatch({ type: "LOGOUT" });
-                  router.replace(routes.login);
-                }}
-              />
-              <Button
-                secondary
-                label={copy.common.reset}
-                onPress={() => {
-                  setProfileOpen(false);
-                  dispatch({ type: "RESET" });
-                  router.replace(routes.login);
+                  void dispatch({ type: "LOGOUT" }).then((ok) => {
+                    if (ok) router.replace(routes.login);
+                  });
                 }}
               />
               <Button

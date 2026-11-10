@@ -1,0 +1,42 @@
+{
+  "name": "salinas-backend",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@12.14.0",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "build": "pnpm exec prisma generate && tsc -p tsconfig.json",
+    "test": "pnpm run build && node --env-file-if-exists=.env --test --test-concurrency=1 dist/tests/*.test.js",
+    "test:postgres": "pnpm run test",
+    "start": "node --env-file-if-exists=.env dist/src/main.js",
+    "start:dev": "node --env-file-if-exists=.env dist/src/main.js",
+    "dev": "node --env-file-if-exists=.env dist/src/main.js",
+    "migrate": "prisma migrate deploy",
+    "provision": "node --env-file-if-exists=.env dist/src/cli.js provision",
+    "contract": "node --env-file-if-exists=.env dist/src/cli.js contract",
+    "prisma:generate": "prisma generate",
+    "migrate:baseline": "prisma migrate resolve --applied 0_initial"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.1.0",
+    "@nestjs/core": "^11.1.0",
+    "@nestjs/platform-express": "^11.1.0",
+    "@prisma/adapter-pg": "7.10.1",
+    "@prisma/client": "7.10.1",
+    "dotenv": "17.2.3",
+    "nodemailer": "^10.3.1",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/nodemailer": "^8.0.2",
+    "@types/pg": "^8.15.0",
+    "pg": "8.16.3",
+    "prisma": "7.10.1",
+    "typescript": "~5.9.3"
+  }
+}

@@ -1,22 +1,45 @@
-import React, { useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import React, { useEffect, useState } from "react";
+import {
+  Image,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import * as ImagePicker from "expo-image-picker";
 import { router, useLocalSearchParams } from "expo-router";
 import { copy } from "@/config/copy";
 import { routes } from "@/config/routes";
-import { customers, demoScenario } from "@/data/fixtures";
-import type { VisitResult } from "@/modules/visits/domain/demo";
-import { useDemo } from "@/shared/DemoProvider";
+import {
+  validateAttachment,
+  dateKey,
+  type Attachment,
+  type ExhibitionAudit,
+  type Customer,
+  type VisitResult,
+} from "@/modules/visits/domain/field";
+import { validateAudit } from "../domain/exhibition-audit";
+import {
+  ExhibitionAuditForm,
+  SavedExhibitionAudit,
+  type AuditDraft,
+} from "./ExhibitionAuditForm";
+import { useField } from "@/shared/FieldProvider";
 import { Body, Button, Card, Icon, Screen, styles } from "@/shared/ui";
 import { theme } from "@/shared/theme";
-import { durationMinutes, formatTime } from "@/shared/format";
+import { durationMinutes, formatTime, formatDate } from "@/shared/format";
 import { visitSchedule } from "./VisitCard";
 function useVisit() {
   const { id } = useLocalSearchParams<{
     id: string;
   }>();
-  const context = useDemo();
+  const context = useField();
   const visit = context.state.visits.find((item) => item.id === id);
-  const customer = customers.find((item) => item.id === visit?.customerId);
+  const customer = context.state.customers.find(
+    (item) => item.id === visit?.customerId,
+  );
   return { ...context, visit, customer };
 }
 function MissingVisit() {
@@ -32,11 +55,7 @@ function MissingVisit() {
     </Screen>
   );
 }
-function CustomerSummary({
-  customer,
-}: {
-  customer: (typeof customers)[number];
-}) {
+function CustomerSummary({ customer }: { customer: Customer }) {
   return (
     <View style={[styles.row, { alignItems: "flex-start", gap: 13 }]}>
       <View style={s.iconTile}>
@@ -44,9 +63,7 @@ function CustomerSummary({
       </View>
       <View style={styles.flex}>
         <Text style={s.customer}>{customer.name}</Text>
-        <Text style={s.muted}>
-          {customer.code} · {customer.district}
-        </Text>
+        <Text style={s.muted}>{customer.address}</Text>
       </View>
     </View>
   );
@@ -56,11 +73,14 @@ export function VisitDetailScreen() {
   if (!visit || !customer) return <MissingVisit />;
   const canArrive =
     state.workday.status === "active" &&
+    !!state.session &&
+    dateKey(visit.scheduledAt, state.session.timeZone) <=
+      dateKey(new Date(), state.session.timeZone) &&
     !state.visits.some(
       (item) => item.status === "active" && item.id !== visit.id,
     );
-  const arrived = visit.status !== "pending";
-  const footer = arrived ? (
+  const arrived = visit.status === "active" || visit.status === "completed";
+  const footer = visit.status === "cancelled" ? undefined : arrived ? (
     <Button
       label={
         visit.status === "completed"
@@ -74,12 +94,9 @@ export function VisitDetailScreen() {
       label={copy.visit.arrival}
       disabled={!canArrive}
       onPress={() => {
-        dispatch({
-          type: "ARRIVE",
-          visitId: visit.id,
-          at: demoScenario.timestamps.arrivals[visit.id],
+        void dispatch({ type: "ARRIVE", visitId: visit.id }).then((ok) => {
+          if (ok) router.replace(routes.record(visit.id));
         });
-        router.replace(routes.record(visit.id));
       }}
     />
   );
@@ -92,23 +109,22 @@ export function VisitDetailScreen() {
       footer={footer}
     >
       <Card style={{ gap: 8, padding: 10 }}>
+        {visit.status === "cancelled" && <Body>{copy.common.cancelled}{visit.cancellationReason ? ` · ${visit.cancellationReason}` : ""}</Body>}
         <CustomerSummary customer={customer} />
         <View style={styles.row}>
           <View style={s.roundIcon}>
             <Icon name="person-outline" size={24} />
           </View>
           <View>
-            <Text style={s.body}>{customer.contactName}</Text>
-            <Text style={s.body}>{customer.phone}</Text>
+            <Text style={s.body}>{copy.visit.contact}</Text>
+            <Text style={s.small}>No registrado</Text>
           </View>
         </View>
         <View style={styles.row}>
           <View style={s.roundIcon}>
             <Icon name="location" size={24} />
           </View>
-          <Text style={[s.muted, styles.flex]}>
-            {customer.address}, {customer.district}
-          </Text>
+          <Text style={[s.muted, styles.flex]}>{customer.address}</Text>
         </View>
       </Card>
       <Card style={{ padding: 12, gap: 7 }}>
@@ -118,7 +134,7 @@ export function VisitDetailScreen() {
           </View>
           <View style={styles.flex}>
             <Text style={s.muted}>{copy.fidelity.scheduledVisit}</Text>
-            <Text style={s.body}>{demoScenario.dateLabel}</Text>
+            <Text style={s.body}>{formatDate(visit.scheduledAt)}</Text>
             <Text style={s.body}>{visitSchedule(visit)}</Text>
           </View>
         </View>
@@ -150,39 +166,36 @@ export function VisitDetailScreen() {
           <Icon name="navigate-outline" size={24} />
           <View>
             <Text style={s.small}>{copy.visit.distance}</Text>
-            <Text style={s.value}>
-              {demoScenario.gps.distanceMeters} {copy.visit.meters}
-            </Text>
+            <Text style={s.value}>—</Text>
           </View>
         </View>
         <View style={[s.metric, s.metricDivider]}>
           <Icon name="locate-outline" size={26} />
           <View>
             <Text style={s.small}>{copy.visit.accuracy}</Text>
-            <Text style={s.value}>
-              {demoScenario.gps.accuracyMeters} {copy.visit.meters}
-            </Text>
+            <Text style={s.value}>—</Text>
           </View>
         </View>
       </View>
       <View style={s.zone}>
-        <Icon name="checkmark-circle" size={33} />
+        <Icon name="information-circle" size={33} />
         <View>
           <Text style={s.value}>{copy.fidelity.zone}</Text>
-          <Text style={s.small}>
-            {copy.fidelity.radius}: {demoScenario.gps.radiusMeters}{" "}
-            {copy.visit.meters}
-          </Text>
+          <Text style={s.small}>{copy.fidelity.radius}</Text>
         </View>
       </View>
-      {!arrived && !canArrive && (
+      {visit.status !== "cancelled" && !arrived && !canArrive && (
         <Card>
           <Body muted>
             {state.workday.status === "not-started"
               ? copy.visit.startBlocked
               : state.workday.status === "completed"
                 ? copy.visit.closedBlocked
-                : copy.errors.another_visit_active}
+                : state.session &&
+                    dateKey(visit.scheduledAt, state.session.timeZone) >
+                      dateKey(new Date(), state.session.timeZone)
+                  ? copy.errors.visit_scheduled_in_future
+                  : copy.errors.another_visit_active}
           </Body>
           <Button
             secondary
@@ -205,15 +218,76 @@ export function VisitDetailScreen() {
   );
 }
 export function VisitRecordScreen() {
-  const { visit, customer, state, dispatch } = useVisit();
+  const { visit, customer, state, dispatch, evidence } = useVisit();
   const [result, setResult] = useState<VisitResult | undefined>(visit?.result);
   const [observations, setObservations] = useState(visit?.observations ?? "");
-  const [photoAttached, setPhotoAttached] = useState(
-    visit?.photoAttached ?? false,
-  );
+  const [attachment, setAttachment] = useState<Attachment | undefined>();
+  const [auditDraft, setAuditDraft] = useState<AuditDraft>(visit?.audit ?? {});
+  const [savedAttachment, setSavedAttachment] = useState<
+    Attachment | null | undefined
+  >();
+  const [photoError, setPhotoError] = useState<string>();
+  const [picking, setPicking] = useState(false);
+  const [evidenceAttempt, setEvidenceAttempt] = useState(0);
+  useEffect(() => {
+    if (visit?.status !== "completed") return;
+    let live = true;
+    setSavedAttachment(undefined);
+    setPhotoError(undefined);
+    void evidence(visit.id)
+      .then((value) => {
+        if (live) setSavedAttachment(value);
+      })
+      .catch(() => {
+        if (live) setPhotoError(copy.record.photoError);
+      });
+    return () => {
+      live = false;
+    };
+  }, [visit?.id, visit?.status, evidenceAttempt]);
+  const selectPhoto = async () => {
+    if (picking) return;
+    setPicking(true);
+    setPhotoError(undefined);
+    try {
+      const selection = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        base64: true,
+        quality: 1,
+        allowsMultipleSelection: false,
+      });
+      if (!selection.canceled) {
+        const asset = selection.assets[0];
+        setAttachment(
+          validateAttachment({
+            mimeType: Platform.OS === "ios" ? "image/jpeg" : asset.mimeType,
+            base64: asset.base64,
+          }),
+        );
+      }
+    } catch (error) {
+      setPhotoError(
+        copy.errors[error instanceof Error ? error.message : ""] ??
+          copy.errors.photo_selection_failed,
+      );
+    } finally {
+      setPicking(false);
+    }
+  };
   if (!visit || !customer) return <MissingVisit />;
   const saved = visit.status === "completed";
   const active = visit.status === "active" && state.workday.status === "active";
+  const needsAudit =
+    visit.executionRole === "merchandiser" && result === "attended";
+  let audit: ExhibitionAudit | undefined;
+  if (needsAudit) {
+    try {
+      audit = validateAudit(auditDraft);
+    } catch {
+      // An incomplete draft cannot enable the final action; domain/server validate again.
+      audit = undefined;
+    }
+  }
   const footer = saved ? (
     <Button
       label={copy.record.return}
@@ -222,16 +296,16 @@ export function VisitRecordScreen() {
   ) : active ? (
     <Button
       label={copy.record.finish}
-      disabled={!result}
+      disabled={!result || picking || (needsAudit && (!audit || !attachment))}
       onPress={() => {
         if (result)
-          dispatch({
+          void dispatch({
             type: "FINISH_VISIT",
             visitId: visit.id,
-            at: demoScenario.timestamps.departures[visit.id],
             result,
             observations: observations.trim(),
-            photoAttached,
+            attachment,
+            ...(needsAudit && audit ? { audit } : {}),
           });
       }}
     />
@@ -302,6 +376,7 @@ export function VisitRecordScreen() {
       </Card>
       {saved ? (
         <>
+          {visit.audit && <SavedExhibitionAudit audit={visit.audit} />}
           <Text style={s.label}>{copy.record.observations}</Text>
           <View style={s.savedNotes}>
             <Text style={s.muted}>
@@ -312,11 +387,35 @@ export function VisitRecordScreen() {
           <View style={s.arrived}>
             <Icon name="attach-outline" size={23} />
             <Text style={s.muted}>
-              {visit.photoAttached
-                ? copy.record.photoAdded
-                : copy.record.noPhoto}
+              {savedAttachment === undefined
+                ? copy.record.photoLoading
+                : savedAttachment
+                  ? copy.record.photoAdded
+                  : copy.record.noPhoto}
             </Text>
           </View>
+          {savedAttachment && (
+            <Image
+              accessibilityLabel={copy.record.photoAdded}
+              source={{
+                uri: `data:${savedAttachment.mimeType};base64,${savedAttachment.base64}`,
+              }}
+              style={{ height: 140, width: "100%", borderRadius: 6 }}
+              resizeMode="contain"
+            />
+          )}
+          {photoError && (
+            <>
+              <Text accessibilityRole="alert" style={styles.errorText}>
+                {photoError}
+              </Text>
+              <Button
+                secondary
+                label={copy.common.retry}
+                onPress={() => setEvidenceAttempt((n) => n + 1)}
+              />
+            </>
+          )}
           <View style={s.success}>
             <Icon
               name="checkmark-circle"
@@ -356,6 +455,9 @@ export function VisitRecordScreen() {
               </Pressable>
             ))}
           </View>
+          {needsAudit && (
+            <ExhibitionAuditForm value={auditDraft} onChange={setAuditDraft} />
+          )}
           <View style={{ gap: 5 }}>
             <Text style={s.label}>{copy.record.observations}</Text>
             <TextInput
@@ -363,27 +465,46 @@ export function VisitRecordScreen() {
               value={observations}
               onChangeText={setObservations}
               multiline
-              maxLength={2000}
+              maxLength={4000}
               placeholder={copy.record.placeholder}
               placeholderTextColor={theme.colors.muted}
               style={[styles.input, s.notes]}
             />
           </View>
           <View style={{ gap: 5 }}>
-            <Text style={s.label}>{copy.record.photo}</Text>
+            <Text style={s.label}>
+              {needsAudit ? copy.audit.photo : copy.record.photo}
+            </Text>
             <Button
               secondary
-              icon={photoAttached ? "close-outline" : "camera-outline"}
+              icon={attachment ? "close-outline" : "camera-outline"}
+              disabled={picking}
               label={
-                photoAttached ? copy.record.removePhoto : copy.fidelity.addPhoto
+                attachment ? copy.record.removePhoto : copy.fidelity.addPhoto
               }
-              onPress={() => setPhotoAttached(!photoAttached)}
+              onPress={() => {
+                if (attachment) setAttachment(undefined);
+                else void selectPhoto();
+              }}
             />
             <Text style={s.small}>{copy.record.photoHint}</Text>
-            {photoAttached && (
+            {photoError && (
+              <Text accessibilityRole="alert" style={styles.errorText}>
+                {photoError}
+              </Text>
+            )}
+            {attachment && (
               <View style={s.attachment}>
                 <Icon name="image-outline" size={27} />
                 <Text style={s.muted}>{copy.record.photoAdded}</Text>
+                <Image
+                  accessibilityLabel={copy.record.photoAdded}
+                  source={{
+                    uri: `data:${attachment.mimeType};base64,${attachment.base64}`,
+                  }}
+                  style={{ height: 90, width: 110 }}
+                  resizeMode="contain"
+                />
               </View>
             )}
           </View>

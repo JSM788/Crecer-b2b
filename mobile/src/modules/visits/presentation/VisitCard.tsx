@@ -1,19 +1,14 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
-import { customers, demoScenario } from "@/data/fixtures";
 import { copy } from "@/config/copy";
 import { routes } from "@/config/routes";
-import type { Visit } from "@/modules/visits/domain/demo";
+import type { Visit } from "@/modules/visits/domain/field";
 import { Body, Button, Card, Icon, styles } from "@/shared/ui";
 import { theme } from "@/shared/theme";
-import { formatTime } from "@/shared/format";
+import { formatTime, formatDate } from "@/shared/format";
 export function visitSchedule(visit: Visit) {
-  return (
-    formatTime(visit.scheduledAt) +
-    " – " +
-    formatTime(demoScenario.scheduledEnds[visit.id])
-  );
+  return formatTime(visit.scheduledAt);
 }
 export function VisitCard({
   visit,
@@ -22,21 +17,21 @@ export function VisitCard({
   visit: Visit;
   compact?: boolean;
 }) {
-  const customer = customers.find((entry) => entry.id === visit.customerId);
-  if (!customer) return null;
   const completed = visit.status === "completed";
   return (
     <Card style={{ padding: compact ? 12 : 13, gap: 10 }}>
-      {!compact && <Body>{visitSchedule(visit)}</Body>}
+      {!compact && (
+        <Body>
+          {formatDate(visit.scheduledAt)} · {visitSchedule(visit)}
+        </Body>
+      )}
       <View style={[styles.row, { alignItems: "flex-start", gap: 13 }]}>
         <View style={s.store}>
           <Icon name="storefront-outline" size={29} />
         </View>
         <View style={[styles.flex, { gap: 3 }]}>
-          <Text style={s.customer}>{customer.name}</Text>
-          <Text style={s.detail}>
-            {customer.code} · {customer.district}
-          </Text>
+          <Text style={s.customer}>{visit.customerName}</Text>
+          <Text style={s.detail}>{visit.customerAddress}</Text>
           {compact && (
             <View style={[styles.row, { gap: 7 }]}>
               <Icon name="time-outline" size={17} />
@@ -56,13 +51,13 @@ export function VisitCard({
                     (visit.result ? copy.record.results[visit.result] : "")
                   : visit.status === "active"
                     ? copy.common.active
-                    : copy.common.pending}
+                    : visit.status === "cancelled" ? copy.common.cancelled : copy.common.pending}
               </Text>
             </View>
           )}
         </View>
       </View>
-      {!compact && (
+      {!compact && visit.status !== "cancelled" && (
         <Button
           label={
             completed

@@ -1,15 +1,26 @@
-/** Fixture timestamps are displayed as scenario-local times without host timezone conversion. */
+let timeZone = "UTC";
+export function setTimeZone(value: string) {
+  timeZone = value;
+}
+export function formatDate(value: Date | string = new Date()) {
+  return new Intl.DateTimeFormat("es-PE", {
+    timeZone,
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  }).format(new Date(value));
+}
 export function formatTime(timestamp?: string) {
   if (!timestamp) return "—";
-  return timestamp.includes("T")
-    ? timestamp.slice(11, 16)
-    : timestamp.slice(0, 5);
+  return new Intl.DateTimeFormat("es-PE", {
+    timeZone,
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).format(new Date(timestamp));
 }
 export function durationMinutes(start?: string, end?: string) {
   if (!start || !end) return 0;
-  const minutes = (value: string) => {
-    const [hours, minute] = formatTime(value).split(":").map(Number);
-    return hours * 60 + minute;
-  };
-  return Math.max(0, minutes(end) - minutes(start));
+  return Math.max(0, Math.round((Date.parse(end) - Date.parse(start)) / 60000));
 }

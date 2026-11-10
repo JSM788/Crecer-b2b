@@ -24,7 +24,7 @@ The approved raster mockups are the source of truth for screen composition. Do n
 
 ## Truthful prototype labels
 
-Reference images contain illustrative claims about device drafts, GPS and server sending. Preserve their visual placement while describing actual in-memory demo behavior. These phrases do not authorize claiming operational integrations.
+Reference images contain illustrative claims about device drafts and GPS. Preserve their visual placement while describing actual behavior. Records and optional selected images now persist through the API. Maps remain illustrative, without location metrics or geofence validation. Display only the real scheduled start time because the API has no planned end time. Unsaved drafts exist only in the current form.
 
 ## Verification
 

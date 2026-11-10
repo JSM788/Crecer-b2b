@@ -4,5 +4,5 @@ import defaults from "./defaults.json";
 export const environment = Object.freeze({
   appName: process.env.EXPO_PUBLIC_APP_NAME || defaults.appName,
   name: process.env.EXPO_PUBLIC_ENVIRONMENT || defaults.environment,
-  dataSource: "mock" as const,
+  dataSource: "api" as const,
 });

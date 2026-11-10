@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Pressable,
   ScrollView,
@@ -13,17 +13,17 @@ import { Redirect } from "expo-router";
 import { copy } from "@/config/copy";
 import { routes } from "@/config/routes";
 import { environment } from "@/config/environment";
-import { demoProfile } from "@/data/fixtures";
-import { useDemo } from "@/shared/DemoProvider";
+import { useField } from "@/shared/FieldProvider";
 import { Button, ErrorNotice, Icon, styles } from "@/shared/ui";
 import { BrandMark } from "@/shared/BrandMark";
 import { theme } from "@/shared/theme";
 
 export function LoginScreen() {
-  const { state, dispatch } = useDemo();
-  const [email, setEmail] = useState<string>(demoProfile.email);
-  const [password, setPassword] = useState<string>(demoProfile.password);
+  const { state, dispatch } = useField();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [visible, setVisible] = useState(false);
+  useEffect(() => {if (state.loginEmail) setEmail(state.loginEmail);}, [state.loginEmail]);
   const compact = useWindowDimensions().height < 760;
   if (state.authenticated) return <Redirect href={routes.workday} />;
   return (
@@ -72,9 +72,10 @@ export function LoginScreen() {
                   onChangeText={setPassword}
                   secureTextEntry={!visible}
                   autoComplete="current-password"
-                  onSubmitEditing={() =>
-                    dispatch({ type: "LOGIN", email, password })
-                  }
+                  onSubmitEditing={() => {
+                    if (!state.loading)
+                      void dispatch({ type: "LOGIN", email, password });
+                  }}
                   style={styles.inputInside}
                 />
                 <Pressable
@@ -94,9 +95,11 @@ export function LoginScreen() {
             </View>
             <View style={loginStyles.submit}>
               <Button
-                label={copy.login.submit}
-                disabled={!email.trim() || !password}
-                onPress={() => dispatch({ type: "LOGIN", email, password })}
+                label={state.loading ? copy.common.loading : copy.login.submit}
+                disabled={state.loading || !email.trim() || !password}
+                onPress={() => {
+                  void dispatch({ type: "LOGIN", email, password });
+                }}
               />
             </View>
           </View>

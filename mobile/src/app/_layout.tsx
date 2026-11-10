@@ -1,7 +1,7 @@
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { DemoProvider } from "@/shared/DemoProvider";
+import { FieldProvider } from "@/shared/FieldProvider";
 import {
   useFonts,
   RobotoCondensed_400Regular,
@@ -17,10 +17,10 @@ export default function RootLayout() {
   if (!fontsLoaded && !fontError) return null;
   return (
     <SafeAreaProvider>
-      <DemoProvider>
+      <FieldProvider>
         <StatusBar style="dark" />
         <Stack screenOptions={{ headerShown: false }} />
-      </DemoProvider>
+      </FieldProvider>
     </SafeAreaProvider>
   );
 }

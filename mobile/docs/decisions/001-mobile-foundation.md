@@ -1,6 +1,6 @@
 # ADR 001: Independent visual mobile foundation
 
-Status: accepted for the authorized visual implementation.
+Status: historical foundation; transport and persistence boundaries are superseded by [ADR 002](002-field-api.md).
 
 ## Decision
 

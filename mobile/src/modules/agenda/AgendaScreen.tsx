@@ -3,28 +3,32 @@ import { StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
 import { copy } from "@/config/copy";
 import { routes } from "@/config/routes";
-import { demoScenario } from "@/data/fixtures";
-import { useDemo } from "@/shared/DemoProvider";
+import { useField } from "@/shared/FieldProvider";
+import { formatDate } from "@/shared/format";
 import { Body, Button, Card, Icon, Screen } from "@/shared/ui";
 import { theme } from "@/shared/theme";
 import { VisitCard } from "@/modules/visits/presentation/VisitCard";
+import { dueVisits } from "@/modules/visits/domain/field";
 export function AgendaScreen() {
-  const { state } = useDemo();
-  const completed = state.visits.filter(
-    (visit) => visit.status === "completed",
-  ).length;
+  const { state, loadMore } = useField();
+  const due = state.session
+    ? dueVisits({ ...state, session: state.session })
+    : [];
+  const completed = state.workday.completedVisits ?? due.filter((visit) => visit.status === "completed").length;
+  const total = state.workday.totalVisits ?? due.length;
   return (
     <Screen tab="agenda" title={copy.agenda.title}>
       <View style={s.dateRow}>
-        <Icon name="chevron-back" size={23} />
+        <Icon name="calendar-outline" size={23} />
         <Text style={s.date}>
-          {demoScenario.dateLabel.replace(",", "").replace(/ de \d{4}$/, "")}
+          {formatDate()
+            .replace(",", "")
+            .replace(/ de \d{4}$/, "")}
         </Text>
-        <Icon name="chevron-forward" size={23} />
       </View>
       {completed > 0 && (
         <Text style={s.progress}>
-          {completed} {copy.fidelity.of} {state.visits.length}{" "}
+          {completed} {copy.fidelity.of} {total}{" "}
           {copy.fidelity.completedVisits}
         </Text>
       )}
@@ -41,7 +45,13 @@ export function AgendaScreen() {
       {state.visits.map((visit) => (
         <VisitCard key={visit.id} visit={visit} />
       ))}
-      {state.visits.length === 0 && <Body muted>{copy.agenda.empty}</Body>}
+      {state.agendaPage && state.visits.length < state.agendaPage.total && <Button secondary label={state.refreshing ? copy.common.loading : copy.agenda.loadMore} disabled={state.refreshing} onPress={() => {void loadMore();}} />}
+      {state.visits.length === 0 && (
+        <Card>
+          <Body>{copy.agenda.empty}</Body>
+          <Body muted>{copy.agenda.emptyHint}</Body>
+        </Card>
+      )}
     </Screen>
   );
 }

@@ -1,156 +1,203 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { demoProfile, demoScenario, visitSeeds } from "../src/data/fixtures";
 import {
-  createInitialState,
-  demoReducer,
-  type DemoAction,
-  type DemoState,
-} from "../src/modules/visits/domain/demo";
-
-const login: DemoAction = {
-  type: "LOGIN",
-  email: demoProfile.email,
-  password: demoProfile.password,
+  guard,
+  type Snapshot,
+  type Command,
+} from "../src/modules/visits/domain/field";
+const state: Snapshot = {
+  session: {
+    companyId: "company",
+    membershipId: "member",
+    userId: "user",
+    role: "commercial",
+    email: "field@example.com",
+    timeZone: "America/Lima",
+  },
+  customers: [],
+  workday: { status: "active" },
+  visits: [
+    {
+      id: "visit",
+      customerId: "customer",
+      customerName: "Assigned customer",
+      customerAddress: "Address",
+      scheduledAt: "2026-10-24T14:00:00Z",
+      status: "pending",
+    },
+  ],
 };
-const start: DemoAction = {
-  type: "START_WORKDAY",
-  at: demoScenario.timestamps.start,
-};
-const arrive = (visitId: string): DemoAction => ({
-  type: "ARRIVE",
-  visitId,
-  at: demoScenario.timestamps.arrivals[visitId],
-});
-const finish = (
-  visitId: string,
-): Extract<DemoAction, { type: "FINISH_VISIT" }> => ({
-  type: "FINISH_VISIT",
-  visitId,
-  at: demoScenario.timestamps.departures[visitId],
-  result: "attended",
-  observations: "  Follow-up requested.  ",
-  photoAttached: false,
-});
-const activeDay = () =>
-  demoReducer(demoReducer(createInitialState(), login), start);
-
-function expectRejected(state: DemoState, action: DemoAction, error: string) {
-  const snapshot = structuredClone(state);
-  const actual = demoReducer(state, action);
-  assert.equal(actual.error, error);
+function rejects(snapshot: Snapshot, command: Command, error: string) {
+  const before = structuredClone(snapshot);
+  assert.throws(() => guard(snapshot, command), new RegExp(error));
   assert.deepEqual(
-    { ...actual, error: undefined },
-    { ...snapshot, error: undefined },
+    snapshot,
+    before,
+    "Rejected actions preserve server snapshot",
   );
-  assert.deepEqual(state, snapshot, "Commands must never mutate their input");
 }
-
-test("two visits complete and the workday closes through public commands", () => {
-  let state = activeDay();
-  for (const { id } of visitSeeds) {
-    state = demoReducer(state, arrive(id));
-    assert.equal(
-      state.visits.find((visit) => visit.id === id)?.status,
-      "active",
-    );
-    state = demoReducer(state, finish(id));
-    const visit = state.visits.find((entry) => entry.id === id)!;
-    assert.equal(visit.status, "completed");
-    assert.equal(visit.arrivedAt, demoScenario.timestamps.arrivals[id]);
-    assert.equal(visit.endedAt, demoScenario.timestamps.departures[id]);
-    assert.equal(visit.observations, "Follow-up requested.");
-    assert.equal(visit.result, "attended");
-    assert.equal(visit.photoAttached, false);
-  }
-  state = demoReducer(state, {
-    type: "END_WORKDAY",
-    at: demoScenario.timestamps.end,
-  });
-  assert.deepEqual(state.workday, {
-    status: "completed",
-    startedAt: demoScenario.timestamps.start,
-    endedAt: demoScenario.timestamps.end,
-  });
-  assert.equal(state.error, undefined);
-  expectRejected(state, start, "workday_already_started");
-  expectRejected(state, arrive("visit-1"), "active_workday_required");
-});
-
-test("unauthenticated actions and incorrect credentials preserve business state", () => {
-  const state = createInitialState();
-  expectRejected(state, start, "authentication_required");
-  expectRejected(
-    state,
-    { type: "LOGIN", email: demoProfile.email, password: "wrong" },
-    "invalid_credentials",
-  );
-});
-
-test("arrival requires an active workday and only one visit may be active", () => {
-  expectRejected(
-    demoReducer(createInitialState(), login),
-    arrive("visit-1"),
+test("arrival guards active workday, pending visit and single active visit", () => {
+  rejects(
+    { ...state, workday: { status: "not-started" } },
+    { type: "ARRIVE", visitId: "visit" },
     "active_workday_required",
   );
-  const state = demoReducer(activeDay(), arrive("visit-1"));
-  expectRejected(state, arrive("visit-2"), "another_visit_active");
-  expectRejected(state, arrive("visit-1"), "visit_not_pending");
-  expectRejected(state, arrive("missing"), "visit_not_found");
+  rejects(state, { type: "ARRIVE", visitId: "unknown" }, "visit_not_found");
+  const active = {
+    ...state,
+    visits: [{ ...state.visits[0], status: "active" as const }],
+  };
+  rejects(active, { type: "ARRIVE", visitId: "visit" }, "visit_not_pending");
+  rejects(
+    {
+      ...state,
+      visits: [
+        ...state.visits,
+        { ...state.visits[0], id: "other", status: "active" },
+      ],
+    },
+    { type: "ARRIVE", visitId: "visit" },
+    "another_visit_active",
+  );
+  assert.doesNotThrow(() => guard(state, { type: "ARRIVE", visitId: "visit" }));
 });
-
-test("completion requires arrival and an outcome; closure requires every visit", () => {
-  expectRejected(activeDay(), finish("visit-1"), "active_visit_required");
-  const state = demoReducer(activeDay(), arrive("visit-1"));
-  expectRejected(
+test("closure requires arrival, valid outcome and completed planned visits", () => {
+  rejects(
     state,
-    { ...finish("visit-1"), result: undefined },
+    {
+      type: "FINISH_VISIT",
+      visitId: "visit",
+      result: "attended",
+      observations: "",
+    },
+    "active_visit_required",
+  );
+  const active = {
+    ...state,
+    visits: [{ ...state.visits[0], status: "active" as const }],
+  };
+  rejects(
+    active,
+    { type: "FINISH_VISIT", visitId: "visit", observations: "" },
     "visit_result_required",
   );
-  expectRejected(
-    state,
-    { type: "END_WORKDAY", at: demoScenario.timestamps.end },
-    "visits_remaining",
+  for (const result of ["attended", "closed", "unavailable"] as const)
+    assert.doesNotThrow(() =>
+      guard(active, {
+        type: "FINISH_VISIT",
+        visitId: "visit",
+        result,
+        observations: "",
+      }),
+    );
+  rejects(state, { type: "END_WORKDAY" }, "visits_remaining");
+  assert.doesNotThrow(() =>
+    guard(
+      { ...state, visits: [{ ...state.visits[0], status: "completed" }] },
+      { type: "END_WORKDAY" },
+    ),
   );
-  const completed = demoReducer(state, finish("visit-1"));
-  expectRejected(
-    completed,
-    { type: "END_WORKDAY", at: demoScenario.timestamps.end },
-    "visits_remaining",
+  rejects(state, { type: "START_WORKDAY" }, "workday_already_started");
+});
+
+test("day closure includes overdue work but excludes tomorrow's pending visits in company timezone", () => {
+  const now = new Date("2026-10-24T23:30:00Z");
+  const future = {
+    ...state.visits[0],
+    id: "future",
+    scheduledAt: "2026-10-25T14:00:00Z",
+  };
+  const overdue = {
+    ...state.visits[0],
+    id: "overdue",
+    scheduledAt: "2026-10-23T14:00:00Z",
+  };
+  assert.doesNotThrow(() =>
+    guard({ ...state, visits: [future] }, { type: "END_WORKDAY" }, now),
+  );
+  assert.throws(
+    () =>
+      guard(
+        { ...state, visits: [future, overdue] },
+        { type: "END_WORKDAY" },
+        now,
+      ),
+    /visits_remaining/,
+  );
+  assert.throws(
+    () =>
+      guard(
+        { ...state, visits: [future] },
+        { type: "ARRIVE", visitId: "future" },
+        now,
+      ),
+    /visit_scheduled_in_future/,
   );
 });
 
-test("logout and login retain progress; closed and unavailable outcomes are accepted", () => {
-  let state = demoReducer(activeDay(), arrive("visit-1"));
-  const before = structuredClone(state);
-  state = demoReducer(state, { type: "LOGOUT" });
-  assert.equal(state.authenticated, false);
-  expectRejected(state, finish("visit-1"), "authentication_required");
-  state = demoReducer(state, login);
-  assert.deepEqual(state, before);
-  state = demoReducer(state, {
-    ...finish("visit-1"),
-    result: "closed",
-    photoAttached: true,
-  });
-  assert.equal(state.visits[0].result, "closed");
-  assert.equal(state.visits[0].photoAttached, true);
-  state = demoReducer(state, arrive("visit-2"));
-  state = demoReducer(state, { ...finish("visit-2"), result: "unavailable" });
-  assert.equal(state.visits[1].result, "unavailable");
-});
-
-test("reset restores independent seeds and clear error preserves progress", () => {
-  const fixturesBefore = structuredClone(visitSeeds);
-  const state = demoReducer(activeDay(), arrive("visit-1"));
-  const rejected = demoReducer(state, arrive("visit-2"));
-  assert.deepEqual(demoReducer(rejected, { type: "CLEAR_ERROR" }), {
+test("merchandiser attended closure requires an exhibition audit and photograph without changing commercial closure", () => {
+  const merchandiser: Snapshot = {
     ...state,
-    error: undefined,
-  });
-  const reset = demoReducer(state, { type: "RESET" });
-  assert.deepEqual(reset, createInitialState());
-  reset.visits[0].status = "completed";
-  assert.equal(createInitialState().visits[0].status, "pending");
-  assert.deepEqual(visitSeeds, fixturesBefore);
+    session: { ...state.session, role: "merchandiser" },
+    visits: [{ ...state.visits[0], status: "active" }],
+  };
+  const close = {
+    type: "FINISH_VISIT" as const,
+    visitId: "visit",
+    result: "attended" as const,
+    observations: "",
+  };
+  const audit = {
+    hasShelfStock: false,
+    noStockReason: "Producto agotado",
+    brandDisplay: "adequate" as const,
+    pricesVisible: true,
+  };
+  const attachment = { mimeType: "image/png" as const, base64: "YQ==" };
+  rejects(merchandiser, close, "audit_required");
+  rejects(merchandiser, { ...close, audit } as Command, "audit_photo_required");
+  rejects(
+    merchandiser,
+    {
+      ...close,
+      audit: { ...audit, noStockReason: " " },
+      attachment,
+    } as Command,
+    "invalid_audit",
+  );
+  rejects(
+    merchandiser,
+    {
+      ...close,
+      audit: { ...audit, noStockReason: "x".repeat(1001) },
+      attachment,
+    } as Command,
+    "invalid_audit",
+  );
+  rejects(
+    merchandiser,
+    {
+      ...close,
+      audit: { ...audit, pricesVisible: undefined },
+      attachment,
+    } as unknown as Command,
+    "invalid_audit",
+  );
+  assert.doesNotThrow(() =>
+    guard(merchandiser, { ...close, audit, attachment } as Command),
+  );
+  for (const result of ["closed", "unavailable"] as const)
+    assert.doesNotThrow(() => guard(merchandiser, { ...close, result }));
+  const commercial = { ...merchandiser, session: state.session };
+  assert.doesNotThrow(() => guard(commercial, close));
+  rejects(
+    commercial,
+    { ...close, audit, attachment } as Command,
+    "audit_not_allowed",
+  );
+  rejects(
+    merchandiser,
+    { ...close, result: "closed", audit, attachment } as Command,
+    "audit_not_allowed",
+  );
 });

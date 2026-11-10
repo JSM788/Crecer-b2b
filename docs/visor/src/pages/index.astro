@@ -1,0 +1,65 @@
+---
+import { Content as Business } from '../../../mapa-producto.md';
+import { Content as Flows } from '../../../flujos/recorridos.md';
+import { Content as Agents } from '../../../agentes.md';
+import '../styles/guide.css';
+---
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Salinas · Guía del producto</title>
+    <meta name="description" content="Mapa de los procesos visibles de Salinas: empresas, clientes, planificación y visitas de campo." />
+  </head>
+  <body>
+    <header class="topbar">
+      <button id="menu-toggle" class="icon-button mobile-menu" aria-label="Abrir navegación" aria-expanded="false">☰</button>
+      <a href="#general" class="brand"><span class="brand-mark">S</span><span>Salinas <small>Guía del producto</small></span></a>
+      <span class="top-divider"></span><span class="private-badge">Documentación interna</span>
+      <div class="top-actions"><button id="copy-link" class="subtle-button">↗ Compartir enlace</button><button id="print" class="icon-button" title="Imprimir o guardar PDF" aria-label="Imprimir o guardar PDF">⎙</button></div>
+    </header>
+    <div class="app-shell">
+      <aside class="sidebar" id="navigation">
+        <label class="search-box"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="Buscar flujo o concepto" aria-label="Buscar flujo o concepto" /><kbd>/</kbd></label>
+        <nav aria-label="Documentación">
+          <p class="nav-heading">VISIÓN GENERAL</p>
+          <a class="nav-link" href="#general" data-view="general"><span class="nav-icon">◈</span><span>Mapa del producto<small>Cómo se conecta todo</small></span></a>
+          <a class="nav-link" href="#negocio" data-view="negocio"><span class="nav-icon">▤</span><span>Negocio y roles<small>Entender antes de cambiar</small></span></a>
+          <p class="nav-heading">PROCESOS VISIBLES <span>03</span></p>
+          <a class="nav-link" href="#F01" data-view="F01"><span class="nav-number">01</span><span>Empresas y usuarios<small>Habilitar el acceso</small></span></a>
+          <a class="nav-link" href="#F02" data-view="F02"><span class="nav-number">02</span><span>Clientes y responsables<small>Preparar la operación</small></span></a>
+          <a class="nav-link" href="#F03" data-view="F03"><span class="nav-number">03</span><span>Visitas y jornadas<small>Planificar, ejecutar, consultar</small></span></a>
+          <p class="nav-heading">PARA INVESTIGAR</p>
+          <a class="nav-link" href="#agentes" data-view="agentes"><span class="nav-icon">⌘</span><span>Guía para agentes<small>Fuentes y dependencias</small></span></a>
+        </nav>
+        <div id="search-results" aria-live="polite" hidden></div>
+        <div class="sidebar-footer"><span class="status-dot"></span><div>Alcance actual<small>Solo funciones visibles · 2 nov 2026</small></div></div>
+      </aside>
+      <main id="main-content">
+        <div class="page-heading"><div><div class="breadcrumb">Guía del producto <span>/</span> <span id="breadcrumb-current">Visión general</span></div><h1 id="page-title">El mapa de la operación</h1><p id="page-subtitle">Tres procesos conectados, de la empresa al resultado en campo.</p></div><button id="panel-toggle" class="subtle-button" aria-expanded="true">Ocultar detalle ⇥</button></div>
+        <div class="view-tabs" role="group" aria-label="Forma de consultar"><button id="map-mode" aria-pressed="true">◈ Mapa visual</button><button id="doc-mode" aria-pressed="false">▤ Leer documento</button><span class="scope-label"><span class="status-dot"></span>Flujos actuales</span></div>
+        <section id="map-area" aria-label="Diagrama interactivo">
+          <div class="canvas-top"><div class="legend"><span><i class="web-dot"></i>Web</span><span><i class="mobile-dot"></i>Móvil</span><span><i class="shared-dot"></i>Proceso conectado</span></div><span class="canvas-hint">Seleccioná un bloque para explorar</span></div>
+          <div id="canvas-viewport" tabindex="0" aria-label="Mapa desplazable; usa los controles para ampliar"><div id="canvas-stage"><svg id="connections" aria-hidden="true"></svg><div id="nodes"></div></div></div>
+          <div class="canvas-bottom"><span id="flow-count"></span><div class="zoom-controls"><button id="zoom-out" aria-label="Alejar">−</button><output id="zoom-value">100 %</output><button id="zoom-in" aria-label="Acercar">+</button><span></span><button id="fit">Ajustar</button><button id="fullscreen" aria-label="Pantalla completa" title="Pantalla completa">⛶</button></div></div>
+        </section>
+        <article id="document-view" class="prose" hidden></article>
+        <div class="page-note"><span>ⓘ</span><p>Los bloques explican el negocio. Las reglas y referencias provienen de los documentos del proyecto. La revisión de fuentes no sustituye una prueba en dispositivo.</p></div>
+      </main>
+      <aside class="inspector" aria-label="Detalle del paso seleccionado">
+        <div class="inspector-label"><span id="detail-eyebrow">VISIÓN GENERAL</span><span class="live-pill">Actual</span></div>
+        <h2 id="detail-title">Una operación, tres procesos</h2><div id="detail-tags" class="tags"></div>
+        <div class="detail-tabs" role="group" aria-label="Contenido del detalle"><button data-detail="explanation" aria-pressed="true">Explicación</button><button data-detail="impact" aria-pressed="false">Impacto</button><button data-detail="references" aria-pressed="false">IA</button></div>
+        <div id="detail-body" class="prose"></div>
+        <div id="detail-actions"></div>
+        <div class="inspector-footer">Fuente única: documentación Markdown del proyecto</div>
+      </aside>
+    </div>
+    <div id="notice" role="status" hidden></div>
+    <div hidden id="source-documents"><article data-source="business"><Business /></article><article data-source="flows"><Flows /></article><article data-source="agents"><Agents /></article></div>
+    <noscript><p>Activá JavaScript para explorar el mapa. Los documentos Markdown están en la carpeta docs del proyecto.</p></noscript>
+    <script>import '../scripts/guide.js';</script>
+  </body>
+</html>

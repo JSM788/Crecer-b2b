@@ -1,19 +1,33 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Modal, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
 import { copy } from "@/config/copy";
 import { routes } from "@/config/routes";
-import { demoScenario } from "@/data/fixtures";
-import { useDemo } from "@/shared/DemoProvider";
-import { Body, Button, Card, Icon, Screen, styles } from "@/shared/ui";
+import { useField } from "@/shared/FieldProvider";
+import {
+  Body,
+  Button,
+  Card,
+  ErrorNotice,
+  Icon,
+  Screen,
+  styles,
+} from "@/shared/ui";
 import { theme } from "@/shared/theme";
-import { durationMinutes, formatTime } from "@/shared/format";
+import { durationMinutes, formatTime, formatDate } from "@/shared/format";
 import { VisitCard } from "@/modules/visits/presentation/VisitCard";
+import { dueVisits } from "@/modules/visits/domain/field";
 export function WorkdayScreen() {
-  const { state, dispatch } = useDemo();
+  const { state, dispatch } = useField();
   const [confirm, setConfirm] = useState(false);
-  const completed = state.visits.filter((v) => v.status === "completed").length;
-  const total = state.visits.length,
+  useEffect(() => {
+    if (state.workday.status === "completed") setConfirm(false);
+  }, [state.workday.status]);
+  const visits = state.session
+    ? dueVisits({ ...state, session: state.session })
+    : [];
+  const completed = state.workday.completedVisits ?? visits.filter((v) => v.status === "completed").length;
+  const total = state.workday.totalVisits ?? visits.length,
     status = state.workday.status,
     f = copy.fidelity;
   const canEnd = completed === total;
@@ -27,11 +41,7 @@ export function WorkdayScreen() {
             : copy.workday.agenda
       }
       onPress={() => {
-        if (status === "not-started")
-          dispatch({
-            type: "START_WORKDAY",
-            at: demoScenario.timestamps.start,
-          });
+        if (status === "not-started") void dispatch({ type: "START_WORKDAY" });
         else if (status === "active" && canEnd) setConfirm(true);
         else router.push(routes.agenda);
       }}
@@ -39,7 +49,7 @@ export function WorkdayScreen() {
   );
   return (
     <Screen tab="workday" title={copy.workday.title} footer={footer}>
-      <Text style={s.date}>{demoScenario.dateLabel}</Text>
+      <Text style={s.date}>{formatDate()}</Text>
       {status === "completed" && (
         <View style={s.success}>
           <Icon
@@ -87,14 +97,18 @@ export function WorkdayScreen() {
                   {durationMinutes(
                     state.workday.startedAt,
                     state.workday.endedAt,
-                  ) / 60}{" "}
-                  {f.hours}
+                  )}{" "}
+                  {f.minutes}
                 </Text>
               </>
             ) : (
               <Text style={s.detail}>
                 {f.schedule}:{" "}
-                <Text style={s.value}>{demoScenario.shiftLabel}</Text>
+                <Text style={s.value}>
+                  {visits.length
+                    ? visits.map((v) => formatTime(v.scheduledAt)).join(" · ")
+                    : copy.agenda.empty}
+                </Text>
               </Text>
             )}
           </View>
@@ -116,9 +130,16 @@ export function WorkdayScreen() {
         </View>
       </Card>
       <Text style={s.section}>{f.scheduledVisits}</Text>
-      {state.visits.map((visit) => (
+      {visits.length === 0 && (
+        <Card>
+          <Body>{copy.agenda.empty}</Body>
+          <Body muted>{copy.agenda.emptyHint}</Body>
+        </Card>
+      )}
+      {visits.map((visit) => (
         <VisitCard key={visit.id} visit={visit} compact />
       ))}
+      {state.agendaPage && state.visits.length < state.agendaPage.total && <Button secondary label={copy.workday.agenda} onPress={() => router.push(routes.agenda)} />}
       <Modal
         visible={confirm}
         transparent
@@ -131,7 +152,8 @@ export function WorkdayScreen() {
             <Text accessibilityRole="header" style={s.sheetTitle}>
               {f.closeTitle}
             </Text>
-            <Body muted>{f.closeBody}</Body>
+            <Body muted>{total === 0 ? f.closeEmptyBody : f.closeBody}</Body>
+            <ErrorNotice />
             <Card style={{ gap: 12 }}>
               <View style={s.row}>
                 <Icon name="time-outline" size={25} />
@@ -147,7 +169,7 @@ export function WorkdayScreen() {
                 <View>
                   <Text style={s.detail}>{f.end}</Text>
                   <Text style={s.value}>
-                    {formatTime(demoScenario.timestamps.end)}
+                    {formatTime(new Date().toISOString())}
                   </Text>
                 </View>
               </View>
@@ -170,11 +192,9 @@ export function WorkdayScreen() {
                 <Button
                   label={copy.workday.confirm}
                   onPress={() => {
-                    dispatch({
-                      type: "END_WORKDAY",
-                      at: demoScenario.timestamps.end,
+                    void dispatch({ type: "END_WORKDAY" }).then((ok) => {
+                      if (ok) setConfirm(false);
                     });
-                    setConfirm(false);
                   }}
                 />
               </View>
