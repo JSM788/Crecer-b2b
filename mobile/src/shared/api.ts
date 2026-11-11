@@ -178,7 +178,7 @@ export class FieldApi {
     const generation = this.generation;
     let response: Response;
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
+    const timeout = setTimeout(() => controller.abort(), 60000);
     try {
       response = await this.fetcher(
         this.requestUrl(path),

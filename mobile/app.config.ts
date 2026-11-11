@@ -5,6 +5,12 @@ const config: ExpoConfig = {
   name: process.env.EXPO_PUBLIC_APP_NAME || defaults.appName,
   slug: "aquamundo-mobile",
   owner: "jsm788s-team",
+  updates: {
+    url: "https://u.expo.dev/e0c8fed0-09f8-4c09-9dc4-11cf182bce2e",
+  },
+  runtimeVersion: {
+    policy: "appVersion",
+  },
   extra: {
     eas: {
       projectId: "e0c8fed0-09f8-4c09-9dc4-11cf182bce2e",

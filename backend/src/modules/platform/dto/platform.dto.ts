@@ -140,3 +140,20 @@ export const companyListQuerySchema = paginationQuerySchema.extend({ status: z.e
 export const memberListQuerySchema = paginationQuerySchema.extend({ role: membershipRoleSchema.optional(), active: z.enum(["true", "false"]).transform((value) => value === "true").optional() }).strict();
 export type CompanyListQuery = z.infer<typeof companyListQuerySchema>;
 export type MemberListQuery = z.infer<typeof memberListQuerySchema>;
+
+export const platformAuditEntryResponseSchema = z.object({
+  id: platformIdSchema,
+  action: z.string(),
+  createdAt: z.iso.datetime({ offset: true }),
+  actorUserId: platformIdSchema,
+  actorEmail: z.string().nullable(),
+  companyId: platformIdSchema,
+  companyName: z.string().nullable(),
+  subjectId: platformIdSchema,
+});
+export const platformAuditListQuerySchema = paginationQuerySchema.extend({
+  companyId: platformIdSchema.optional(),
+  action: z.string().optional(),
+}).strict();
+export type PlatformAuditListQuery = z.infer<typeof platformAuditListQuerySchema>;
+export type PlatformAuditEntryResponse = z.infer<typeof platformAuditEntryResponseSchema>;

@@ -78,3 +78,4 @@ export function subscribeBreak(listener: (state: BreakState) => void): () => voi
     listeners.delete(listener);
   };
 }
+

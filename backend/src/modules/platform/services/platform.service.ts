@@ -19,6 +19,7 @@ import {
   MemberInput,
   MemberEditInput,
   companyResponseSchema,
+  PlatformAuditListQuery,
 } from "../dto/platform.dto";
 import { PlatformAccessService } from "./platform-access.service";
 import { PlatformCommandsService } from "./platform-commands.service";
@@ -596,5 +597,50 @@ export class PlatformService {
         return { companyId, response: memberResponse(updated) };
       },
     );
+  }
+
+  auditLogs(principal: PlatformPrincipal, query: PlatformAuditListQuery) {
+    return this.prisma.transaction(async (tx) => {
+      await this.access.requireOwner(tx, principal);
+      const where: Prisma.PlatformAuditEntryWhereInput = {
+        ...(query.companyId ? { companyId: query.companyId } : {}),
+        ...(query.action ? { action: { contains: query.action, mode: 'insensitive' } } : {}),
+        ...(query.search ? {
+          OR: [
+            { action: { contains: query.search, mode: 'insensitive' } },
+            { actor: { email: { contains: query.search, mode: 'insensitive' } } },
+            { company: { name: { contains: query.search, mode: 'insensitive' } } },
+          ],
+        } : {}),
+      };
+      const [entries, total] = await Promise.all([
+        tx.platformAuditEntry.findMany({
+          where,
+          include: {
+            actor: { select: { email: true } },
+            company: { select: { name: true } },
+          },
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+          skip: (query.page - 1) * query.pageSize,
+          take: query.pageSize,
+        }),
+        tx.platformAuditEntry.count({ where }),
+      ]);
+
+      return pageResult(
+        entries.map((e) => ({
+          id: e.id,
+          action: e.action,
+          createdAt: e.createdAt.toISOString(),
+          actorUserId: e.actorUserId,
+          actorEmail: e.actor?.email ?? null,
+          companyId: e.companyId,
+          companyName: e.company?.name ?? null,
+          subjectId: e.subjectId,
+        })),
+        total,
+        query,
+      );
+    });
   }
 }

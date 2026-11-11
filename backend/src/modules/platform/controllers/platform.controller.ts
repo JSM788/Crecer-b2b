@@ -26,6 +26,9 @@ import {
   memberResponseSchema,
   memberStatusSchema,
   platformIdSchema,
+  platformAuditListQuerySchema,
+  platformAuditEntryResponseSchema,
+  PlatformAuditListQuery,
 } from "../dto/platform.dto";
 import { PlatformService } from "../services/platform.service";
 
@@ -189,5 +192,18 @@ export class PlatformController {
       membershipId,
       input.active,
     );
+  }
+
+  @Endpoint({
+    method: "get",
+    path: "audit-logs",
+    query: platformAuditListQuerySchema,
+    output: pageResultSchema(platformAuditEntryResponseSchema),
+  })
+  auditLogs(
+    @CurrentPrincipal() principal: PlatformPrincipal,
+    @Query(new ZodValidationPipe(platformAuditListQuerySchema)) query: PlatformAuditListQuery,
+  ) {
+    return this.platform.auditLogs(principal, query);
   }
 }
