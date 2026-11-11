@@ -6,6 +6,7 @@ export const scheduleSchema = z
   .object({
     customerId: idSchema,
     scheduledAt: z.iso.datetime({ offset: true }),
+    observations: z.string().max(1000).optional(),
   })
   .strict();
 export const evidenceSchema = z

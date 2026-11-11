@@ -42,6 +42,13 @@ export function VisitCard({
               </Text>
             </View>
           )}
+          {visit.observations?.includes("[AD-HOC") && (
+            <View style={[s.badge, s.adHocBadge]}>
+              <Text style={[s.badgeText, s.adHocBadgeText]}>
+                ⚡ Fuera de Zona / Ad-Hoc
+              </Text>
+            </View>
+          )}
           {(!compact || completed) && (
             <View style={[s.badge, completed && s.completed]}>
               <Text style={[s.badgeText, completed && s.completedText]}>
@@ -115,4 +122,13 @@ const s = StyleSheet.create({
   },
   completed: { backgroundColor: theme.colors.completedBadge },
   completedText: { color: theme.colors.completedText },
+  adHocBadge: {
+    backgroundColor: "#fef3c7",
+    borderColor: "#f59e0b",
+    borderWidth: 1,
+  },
+  adHocBadgeText: {
+    color: "#b45309",
+    fontFamily: theme.font.bold,
+  },
 });

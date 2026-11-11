@@ -450,6 +450,7 @@ export class FieldApi {
           ? {
               customerId: command.customerId,
               scheduledAt: command.scheduledAt,
+              ...(command.observations ? { observations: command.observations } : {}),
             }
           : command.type === "END_WORKDAY"
             ? (command.justification ? { justification: command.justification } : {})

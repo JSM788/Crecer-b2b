@@ -33,6 +33,7 @@ import { theme } from "@/shared/theme";
 import { durationMinutes, formatTime, formatDate } from "@/shared/format";
 import { visitSchedule } from "./VisitCard";
 import { getVerifiedLocation } from "@/shared/location";
+import { getBreakState } from "@/shared/break-manager";
 function useVisit() {
   const { id } = useLocalSearchParams<{
     id: string;
@@ -90,6 +91,13 @@ export function VisitDetailScreen() {
     setCheckInError(null);
     setCheckingIn(true);
     try {
+      const breakState = getBreakState();
+      if (breakState.onBreak) {
+        setCheckInError(
+          "🥪 Estás en horario de refrigerio (almuerzo). Reanuda tu jornada en la pantalla de Jornada para continuar con tus visitas."
+        );
+        return;
+      }
       const loc = await getVerifiedLocation();
       if (loc.isMocked) {
         setCheckInError(

@@ -26,6 +26,14 @@ import { durationMinutes, formatTime, formatDate } from "@/shared/format";
 import { VisitCard } from "@/modules/visits/presentation/VisitCard";
 import { dueVisits } from "@/modules/visits/domain/field";
 import { getVerifiedLocation } from "@/shared/location";
+import {
+  getBreakState,
+  startBreak,
+  endBreak,
+  resetBreak,
+  subscribeBreak,
+  BreakState,
+} from "@/shared/break-manager";
 
 const JUSTIFICATION_REASONS = [
   "Cliente ausente / Local cerrado",
@@ -43,9 +51,17 @@ export function WorkdayScreen() {
   const [selectedReason, setSelectedReason] = useState<string>(JUSTIFICATION_REASONS[0]);
   const [customReason, setCustomReason] = useState<string>("");
   const [actionLoading, setActionLoading] = useState(false);
+  const [breakState, setBreakState] = useState<BreakState>(getBreakState());
 
   useEffect(() => {
-    if (state.workday.status === "completed") setConfirm(false);
+    return subscribeBreak(setBreakState);
+  }, []);
+
+  useEffect(() => {
+    if (state.workday.status === "completed") {
+      setConfirm(false);
+      resetBreak();
+    }
   }, [state.workday.status]);
 
   const visits = state.session
@@ -139,6 +155,19 @@ export function WorkdayScreen() {
     <Screen tab="workday" title={copy.workday.title} footer={footer}>
       <Text style={s.date}>{formatDate()}</Text>
 
+      {/* Alerta de Refrigerio / Almuerzo Activo */}
+      {status === "active" && breakState.onBreak && (
+        <View style={s.breakBanner}>
+          <Icon name="restaurant-outline" color="#b45309" size={26} />
+          <View style={styles.flex}>
+            <Text style={s.breakTitle}>En Horario de Refrigerio (Almuerzo)</Text>
+            <Text style={s.breakBody}>
+              Pausa activa desde las {breakState.startedAt ? formatTime(breakState.startedAt) : "hace unos momentos"}. La jornada y el registro de visitas están en pausa legal.
+            </Text>
+          </View>
+        </View>
+      )}
+
       {/* Alerta de Desconexión Digital (SUNAFIL) */}
       {status === "active" && isCutoffHour && (
         <View style={s.disconnectionBanner}>
@@ -175,12 +204,26 @@ export function WorkdayScreen() {
       <Card style={{ gap: 21, paddingVertical: 16 }}>
         <View style={s.row}>
           <Icon name="calendar-outline" size={29} />
-          <View style={[s.badge, status === "active" && s.black]}>
-            <Text style={[s.badgeText, status === "active" && s.white]}>
+          <View
+            style={[
+              s.badge,
+              status === "active" && !breakState.onBreak && s.black,
+              status === "active" && breakState.onBreak && s.breakBadge,
+            ]}
+          >
+            <Text
+              style={[
+                s.badgeText,
+                status === "active" && !breakState.onBreak && s.white,
+                status === "active" && breakState.onBreak && s.breakBadgeText,
+              ]}
+            >
               {status === "not-started"
                 ? f.workdayIdle
                 : status === "active"
-                  ? f.workdayActive
+                  ? breakState.onBreak
+                    ? "EN REFRIGERIO"
+                    : f.workdayActive
                   : f.workdayCompleted}
             </Text>
           </View>
@@ -240,6 +283,32 @@ export function WorkdayScreen() {
             </View>
           )}
         </View>
+
+        {/* Control de Refrigerio / Almuerzo */}
+        {status === "active" && (
+          <View style={{ marginTop: 4, gap: 6 }}>
+            {breakState.onBreak ? (
+              <Button
+                label="Reanudar Jornada (Fin de Refrigerio)"
+                icon="play-outline"
+                secondary
+                onPress={() => endBreak()}
+              />
+            ) : (
+              <Button
+                label="Tomar Refrigerio / Almuerzo"
+                icon="restaurant-outline"
+                secondary
+                onPress={() => startBreak()}
+              />
+            )}
+            {breakState.totalBreakMinutes ? (
+              <Text style={[s.detail, { textAlign: "center", fontSize: 13 }]}>
+                🥪 Refrigerio acumulado hoy: {breakState.totalBreakMinutes} min
+              </Text>
+            ) : null}
+          </View>
+        )}
       </Card>
 
       <Text style={s.section}>{f.scheduledVisits}</Text>
@@ -490,6 +559,36 @@ const s = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     marginBottom: 10,
+  },
+  breakBanner: {
+    flexDirection: "row",
+    gap: 12,
+    alignItems: "center",
+    backgroundColor: "#fef3c7",
+    borderColor: "#f59e0b",
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 10,
+  },
+  breakTitle: {
+    fontFamily: theme.font.bold,
+    fontSize: 15,
+    color: "#b45309",
+  },
+  breakBody: {
+    fontFamily: theme.font.regular,
+    fontSize: 13,
+    color: "#78350f",
+    marginTop: 2,
+  },
+  breakBadge: {
+    backgroundColor: "#fef3c7",
+    borderColor: "#f59e0b",
+  },
+  breakBadgeText: {
+    color: "#b45309",
+    fontFamily: theme.font.bold,
   },
   disconnectionTitle: {
     fontFamily: theme.font.bold,

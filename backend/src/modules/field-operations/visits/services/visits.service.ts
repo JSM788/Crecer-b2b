@@ -80,6 +80,7 @@ export class VisitsService {
             scheduledAt: finalScheduledAt,
             plannedRole: principal.role,
             workdayId: activeWorkday?.id ?? null,
+            observations: input.observations ?? null,
           },
         });
 

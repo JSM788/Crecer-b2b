@@ -71,6 +71,7 @@ export type Command =
       type: "SCHEDULE_VISIT";
       customerId: string;
       scheduledAt: string;
+      observations?: string;
     };
 
 export function dateKey(value: Date | string, timeZone: string) {
