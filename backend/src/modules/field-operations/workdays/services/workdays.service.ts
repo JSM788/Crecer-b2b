@@ -4,7 +4,7 @@ import { Principal } from '../../../../common/types/principal';
 import { businessDate, databaseDate } from '../../../../common/business-date';
 import { reject } from '../../../../common/errors/application-error';
 import { FieldCommandsService } from '../../services/field-commands.service';
-import { workdayResponse } from '../dto/workday.dto';
+import { EndWorkdayDto, workdayResponse } from '../dto/workday.dto';
 import { businessDateWindow } from '../../management/services/business-date-window';
 import { pageResult, PaginationQuery, paginationQuerySchema } from '../../../../common/pagination';
 import { workdayStatistics } from './workday-statistics';
@@ -79,12 +79,12 @@ export class WorkdaysService {
     );
   }
 
-  end(principal: Principal, key: string) {
+  end(principal: Principal, key: string, input: EndWorkdayDto = {}) {
     return this.commands.execute(
       principal,
       key,
       'end_workday',
-      null,
+      input,
       async (tx) => {
         const where = {
           companyId: principal.companyId,
@@ -96,16 +96,26 @@ export class WorkdaysService {
         if (!day) reject('active_workday_required');
         const date = day.businessDate.toISOString().slice(0, 10);
         const window = businessDateWindow(date, principal.timeZone);
-        const pending = await tx.visit.findFirst({
+        const pending = await tx.visit.findMany({
           where: { ...where, status: { in: ['pending', 'active'] }, scheduledAt: { lt: window.lt } },
           select: { id: true },
         });
-        if (pending)
-          reject('visits_remaining');
-        const updated = await tx.workday.update({
-            where: { id: day.id },
-            data: { status: 'completed', endedAt: new Date() },
+        if (pending.length > 0) {
+          if (!input.justification) {
+            reject('visits_remaining');
+          }
+          await tx.visit.updateMany({
+            where: { id: { in: pending.map((p) => p.id) } },
+            data: {
+              status: 'cancelled',
+              cancellationReason: input.justification,
+            },
           });
+        }
+        const updated = await tx.workday.update({
+          where: { id: day.id },
+          data: { status: 'completed', endedAt: new Date() },
+        });
         const statistics = await workdayStatistics(tx, [day.id]);
         return workdayResponse(updated, statistics.get(day.id)!);
       },

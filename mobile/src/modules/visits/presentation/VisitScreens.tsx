@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import {
   Image,
+  Linking,
   Platform,
   Pressable,
   StyleSheet,
@@ -31,6 +32,7 @@ import { Body, Button, Card, Icon, Screen, styles } from "@/shared/ui";
 import { theme } from "@/shared/theme";
 import { durationMinutes, formatTime, formatDate } from "@/shared/format";
 import { visitSchedule } from "./VisitCard";
+import { getVerifiedLocation } from "@/shared/location";
 function useVisit() {
   const { id } = useLocalSearchParams<{
     id: string;
@@ -70,6 +72,9 @@ function CustomerSummary({ customer }: { customer: Customer }) {
 }
 export function VisitDetailScreen() {
   const { state, dispatch, visit, customer } = useVisit();
+  const [checkInError, setCheckInError] = useState<string | null>(null);
+  const [checkingIn, setCheckingIn] = useState(false);
+
   if (!visit || !customer) return <MissingVisit />;
   const canArrive =
     state.workday.status === "active" &&
@@ -80,6 +85,25 @@ export function VisitDetailScreen() {
       (item) => item.status === "active" && item.id !== visit.id,
     );
   const arrived = visit.status === "active" || visit.status === "completed";
+
+  const handleArrival = async () => {
+    setCheckInError(null);
+    setCheckingIn(true);
+    try {
+      const loc = await getVerifiedLocation();
+      if (loc.isMocked) {
+        setCheckInError(
+          "⚠️ Ubicación simulada detectada (Fake GPS). Por política anti-fraude, desactiva aplicaciones de simulación para registrar llegada."
+        );
+        return;
+      }
+      const ok = await dispatch({ type: "ARRIVE", visitId: visit.id });
+      if (ok) router.replace(routes.record(visit.id));
+    } finally {
+      setCheckingIn(false);
+    }
+  };
+
   const footer = visit.status === "cancelled" ? undefined : arrived ? (
     <Button
       label={
@@ -91,13 +115,9 @@ export function VisitDetailScreen() {
     />
   ) : (
     <Button
-      label={copy.visit.arrival}
-      disabled={!canArrive}
-      onPress={() => {
-        void dispatch({ type: "ARRIVE", visitId: visit.id }).then((ok) => {
-          if (ok) router.replace(routes.record(visit.id));
-        });
-      }}
+      label={checkingIn ? copy.common.loading : copy.visit.arrival}
+      disabled={!canArrive || checkingIn}
+      onPress={() => void handleArrival()}
     />
   );
   return (
@@ -108,6 +128,12 @@ export function VisitDetailScreen() {
       back={() => router.replace(routes.agenda)}
       footer={footer}
     >
+      {checkInError && (
+        <View style={s.errorBanner}>
+          <Icon name="alert-circle" color={theme.colors.danger} size={22} />
+          <Text style={s.errorBannerText}>{checkInError}</Text>
+        </View>
+      )}
       <Card style={{ gap: 8, padding: 10 }}>
         {visit.status === "cancelled" && <Body>{copy.common.cancelled}{visit.cancellationReason ? ` · ${visit.cancellationReason}` : ""}</Body>}
         <CustomerSummary customer={customer} />
@@ -457,6 +483,41 @@ export function VisitRecordScreen() {
               color={theme.colors.successText}
             />
             <Text style={s.successText}>{copy.fidelity.demoSaved}</Text>
+          </View>
+
+          <View style={{ marginTop: 8 }}>
+            <Button
+              secondary
+              icon="logo-whatsapp"
+              label="Compartir Resumen por WhatsApp"
+              onPress={() => {
+                const lines = [
+                  `*RESUMEN DE VISITA - SALINAS / AQUAMUNDO*`,
+                  `🏢 *Cliente:* ${customer.name}`,
+                  customer.ruc ? `📄 *RUC:* ${customer.ruc}` : "",
+                  `📍 *Dirección:* ${customer.address}`,
+                  `📅 *Fecha:* ${formatDate(visit.endedAt || visit.scheduledAt)}`,
+                  `👤 *Asesor:* ${state.session?.email ?? "Comercial"}`,
+                  visit.result ? `📋 *Resultado:* ${copy.record.results[visit.result]}` : "",
+                  visit.observations ? `📝 *Observaciones:* ${visit.observations}` : "",
+                  ``,
+                  `_Comprobante de atención comercial emitido desde App Salinas._`,
+                ].filter(Boolean);
+
+                const message = encodeURIComponent(lines.join("\n"));
+                const waUrl = `whatsapp://send?text=${message}`;
+                const webUrl = `https://wa.me/?text=${message}`;
+
+                Linking.canOpenURL(waUrl)
+                  .then((can) => {
+                    if (can) void Linking.openURL(waUrl);
+                    else void Linking.openURL(webUrl);
+                  })
+                  .catch(() => {
+                    void Linking.openURL(webUrl);
+                  });
+              }}
+            />
           </View>
         </>
       ) : active ? (
@@ -847,5 +908,22 @@ const s = StyleSheet.create({
     fontFamily: theme.font.regular,
     fontSize: 12,
     color: theme.colors.muted,
+  },
+  errorBanner: {
+    flexDirection: "row",
+    gap: 10,
+    alignItems: "center",
+    backgroundColor: theme.colors.dangerSoft,
+    borderColor: theme.colors.danger,
+    borderWidth: 1,
+    borderRadius: 7,
+    padding: 10,
+    marginBottom: 8,
+  },
+  errorBannerText: {
+    fontFamily: theme.font.regular,
+    fontSize: 13,
+    color: theme.colors.danger,
+    flex: 1,
   },
 });

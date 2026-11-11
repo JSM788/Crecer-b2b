@@ -14,6 +14,13 @@ export const workdayResponseSchema = z.object({
   completed_visits: z.number().int().nonnegative(),
   total_visits: z.number().int().nonnegative(),
 });
+export const endWorkdaySchema = z
+  .object({
+    justification: z.string().max(1000).optional(),
+  })
+  .strict();
+export type EndWorkdayDto = z.infer<typeof endWorkdaySchema>;
+
 export function workdayResponse(day: Workday, statistics: { completed_visits: number; total_visits: number }) {
   return workdayResponseSchema.parse({
     id: day.id,

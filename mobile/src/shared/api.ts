@@ -451,7 +451,9 @@ export class FieldApi {
               customerId: command.customerId,
               scheduledAt: command.scheduledAt,
             }
-          : {};
+          : command.type === "END_WORKDAY"
+            ? (command.justification ? { justification: command.justification } : {})
+            : {};
     const identity = path + JSON.stringify(body);
     if (this.pending && this.pending.identity !== identity)
       throw new FieldError("uncertain_action_pending");

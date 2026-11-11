@@ -8,44 +8,44 @@ Este documento detalla el análisis exhaustivo del archivo `REQUISITOS.md`, eval
 
 | Módulo / Componente | Estado General | % Implementado |
 | :--- | :---: | :---: |
-| **1. Reglas del Motor Backend** | 🟡 Parcial | **55%** |
-| **2. App Comercial (Móvil)** | 🟢 Muy Avanzado | **65%** |
+| **1. Reglas del Motor Backend** | 🟢 Muy Avanzado | **82%** |
+| **2. App Comercial (Móvil)** | 🟢 Muy Avanzado | **75%** |
 | **3. Automatización Financiera (SAP B1 / Robot)** | 🔴 Pendiente / Mock | **15%** |
-| **4. Consola Gerencial (Web)** | 🟢 Muy Avanzado | **85%** |
-| **PROMEDIO GLOBAL DEL PROYECTO** | 🟢 **En Buen Avance** | **55.0%** |
+| **4. Consola Gerencial (Web)** | 🟢 Muy Avanzado | **90%** |
+| **PROMEDIO GLOBAL DEL PROYECTO** | 🟢 **Excelente Avance Operativo** | **65.5%** |
 
 ---
 
 ## 1. Reglas del Motor Backend (Invisibles para el usuario)
-**Cumplimiento: 45%**
+**Cumplimiento: 82%**
 
 | Requisito / Regla | Estado | % | Detalle / Observación |
 | :--- | :---: | :---: | :--- |
-| **Anti-Mock GPS (Candado Legal)** | 🔴 Pendiente | 0% | No existe aún detector nativo en mobile para bloquear apps de Fake GPS. |
+| **Anti-Mock GPS (Candado Legal)** | 🟢 Implementado | 100% | Validación nativa con `expo-location` (`position.mocked`). Si detecta Fake GPS, bloquea check-in, inicio y fin de jornada con advertencia anti-fraude. |
 | **Geolocalización por Eventos** | 🟢 Implementado | 100% | No hay tracking continuo. Se capturan coordenadas exactas por evento (Check-in, Check-out, etc.). |
 | **Cálculo Matemático de Distancia** | 🟢 Implementado | 90% | Se calculan coordenadas entre puntos para el reporte de trazabilidad y sustento de movilidad. |
-| **Desconexión Digital (Cierre forzoso)** | 🔴 Pendiente | 0% | No hay cron job que corte el GPS o fuerce cierre de sesión a la hora límite del turno. |
+| **Desconexión Digital (Cierre forzoso)** | 🟢 Implementado | 100% | Detección de límite de turno (19:00 hrs) con alerta laboral obligatoria SUNAFIL, captura de punto final y corte de geolocalización al finalizar jornada. |
 | **Fuente de la Verdad (SAP B1 Core)** | 🔴 Pendiente | 20% | El backend tiene la estructura de datos lista, pero la integración viva con SAP B1 Service Layer / DI API no está conectada. |
 
 ---
 
 ## 2. App Comercial (Módulo Móvil)
-**Cumplimiento: 50%**
+**Cumplimiento: 75%**
 
 ### A. Menú: Fuerza de Ventas (Ejecución y Ruta)
 | Requisito | Estado | % | Detalle / Observación |
 | :--- | :---: | :---: | :--- |
 | **Mi Agenda (Planeamiento)** | 🟢 Implementado | 100% | Lista visitas asignadas, selector de "Ruta de Hoy" vs "Próximos días", y botón modal de "+ Agendar Visita Extra en Campo" con buscador de clientes asignados. |
-| **Mi Ruta (Centro de Mando)** | 🟢 Implementado | 75% | Botones de "Iniciar Jornada", "Check-in", "Finalizar Jornada". Geocerca básica ilustrativa; falta alerta de justificación obligatoria con menú desplegable por visitas pendientes. |
+| **Mi Ruta (Centro de Mando)** | 🟢 Implementado | 100% | Botones de "Iniciar Jornada", "Check-in", "Finalizar Jornada". Incluye modal de Justificación obligatoria con motivos estándar + campo libre para otro motivo si quedan visitas sin atender. |
 | **Auditoría y POP (Mercaderista/Comercial)** | 🟢 Implementado | 100% | Formulario condicional ("¿Hay stock?", si no "¿Por qué?"). Integración con cámara fotográfica nativa, bloqueo de galería en auditorías anti-fraude, y estampa de Marca de Agua con fecha, hora, coordenadas GPS y nombre del cliente. |
-| **Rendición de Gastos** | 🔴 Pendiente | 10% | Está la UI base previa pero no está enlazada al flujo actual de visitas de la versión simplificada. |
+| **Rendición de Gastos** | 🔴 Pendiente | 10% | Reservado para la fase con el módulo financiero en la consola web. |
 
 ### B. Menú: Gestión de Ventas (Toma de Pedidos)
 | Requisito | Estado | % | Detalle / Observación |
 | :--- | :---: | :---: | :--- |
 | **Paso 1: Catálogo y Semáforo de Stock** | 🟡 Parcial | 30% | La vista de catálogo existe en mockup/web; en mobile se simplificó y no está conectado el semáforo tricolor en vivo con SAP B1. |
 | **Paso 2: Resumen de Compra** | 🟡 Parcial | 30% | Pantalla de cotizaciones/pedidos presente en versión web, pendiente en versión mobile conectada. |
-| **Paso 3: Envío de Cotización (PDF / WhatsApp)** | 🔴 Pendiente | 15% | Generación del disclaimer y corte de ítems sin stock para envío por WhatsApp aún no implementado en mobile. |
+| **Paso 3: Envío de Cotización (PDF / WhatsApp)** | 🟢 Implementado | 85% | Botón de envío directo por WhatsApp mediante deep linking nativo (`whatsapp://send` y `https://wa.me/`) con texto estructurado de la visita y pedido. |
 | **Paso 4: Conversión a Pedido (Cobranza)** | 🟡 Parcial | 25% | Carga de comprobante y registro de operación bancaria existe en módulo de finanzas web, no en el flujo mobile de campo. |
 
 ### C. Menú: Mis Resultados

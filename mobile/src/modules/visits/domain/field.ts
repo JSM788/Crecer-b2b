@@ -57,7 +57,7 @@ export type Snapshot = {
 };
 export type Command =
   | { type: "START_WORKDAY" }
-  | { type: "END_WORKDAY" }
+  | { type: "END_WORKDAY"; justification?: string }
   | { type: "ARRIVE"; visitId: string }
   | {
       type: "FINISH_VISIT";
@@ -115,9 +115,11 @@ export function guard(
     throw new Error("active_workday_required");
   if (command.type === "END_WORKDAY") {
     const counts = snapshot.workday;
-    if ((counts.totalVisits !== undefined && counts.completedVisits !== undefined)
-      ? counts.completedVisits < counts.totalVisits
-      : dueVisits(snapshot, now).some((v) => v.status !== "completed"))
+    const hasRemaining =
+      counts.totalVisits !== undefined && counts.completedVisits !== undefined
+        ? counts.completedVisits < counts.totalVisits
+        : dueVisits(snapshot, now).some((v) => v.status !== "completed");
+    if (hasRemaining && !command.justification?.trim())
       throw new Error("visits_remaining");
     return;
   }

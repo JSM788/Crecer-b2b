@@ -8,7 +8,11 @@ import { ZodValidationPipe } from '../../../../common/http/zod-validation.pipe';
 import { Principal } from '../../../../common/types/principal';
 import { JsonResponse } from '../../../../common/types/http';
 import { emptyBodySchema } from '../../../identity/dto/login.dto';
-import { workdayResponseSchema } from '../dto/workday.dto';
+import {
+  EndWorkdayDto,
+  endWorkdaySchema,
+  workdayResponseSchema,
+} from '../dto/workday.dto';
 import { WorkdaysService } from '../services/workdays.service';
 import { pageResultSchema, PaginationQuery, paginationQuerySchema } from '../../../../common/pagination';
 
@@ -58,15 +62,15 @@ export class WorkdaysController {
   @Endpoint({
     method: 'post',
     path: 'workdays/end',
-    input: emptyBodySchema,
+    input: endWorkdaySchema,
     output: workdayResponseSchema,
     operationKey: true,
   })
   end(
     @CurrentPrincipal() principal: Principal,
     @OperationKey() key: string,
-    @Body(new ZodValidationPipe(emptyBodySchema)) _input: Record<string, never>,
+    @Body(new ZodValidationPipe(endWorkdaySchema)) input: EndWorkdayDto,
   ) {
-    return this.workdays.end(principal, key);
+    return this.workdays.end(principal, key, input);
   }
 }

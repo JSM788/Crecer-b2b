@@ -155,15 +155,15 @@ export class VisitsService {
           },
         });
         if (input.attachment) {
-          // Subida automática a Cloudflare R2
-          void storage.uploadBase64(input.attachment.base64, input.attachment.mimeType, 'visits');
+          // Subida a Cloudflare R2
+          const r2Url = await storage.uploadBase64(input.attachment.base64, input.attachment.mimeType, 'visits');
 
           await tx.visitEvidence.create({
             data: {
               ...where,
               visitId: id,
               mimeType: input.attachment.mimeType,
-              content: Buffer.from(input.attachment.base64, 'base64'),
+              content: r2Url ? Buffer.from(r2Url, 'utf-8') : Buffer.from(input.attachment.base64, 'base64'),
             },
           });
         }
@@ -183,11 +183,12 @@ export class VisitsService {
     });
     if (!visit) reject('visit_not_found');
     const evidence = visit.evidence[0];
-    return evidence
-      ? {
-          mimeType: evidence.mimeType,
-          base64: Buffer.from(evidence.content).toString('base64'),
-        }
-      : null;
+    if (!evidence) return null;
+    const strContent = Buffer.from(evidence.content).toString('utf-8');
+    const isUrl = strContent.startsWith('http://') || strContent.startsWith('https://');
+    return {
+      mimeType: evidence.mimeType,
+      base64: isUrl ? strContent : Buffer.from(evidence.content).toString('base64'),
+    };
   }
 }

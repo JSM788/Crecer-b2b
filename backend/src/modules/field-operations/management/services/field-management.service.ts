@@ -226,12 +226,13 @@ export class FieldManagementService {
       });
       if (!visit) reject('visit_not_found');
       const evidence = visit.evidence[0];
-      return evidence
-        ? {
-            mimeType: evidence.mimeType,
-            base64: Buffer.from(evidence.content).toString('base64'),
-          }
-        : null;
+      if (!evidence) return null;
+      const strContent = Buffer.from(evidence.content).toString('utf-8');
+      const isUrl = strContent.startsWith('http://') || strContent.startsWith('https://');
+      return {
+        mimeType: evidence.mimeType,
+        base64: isUrl ? strContent : Buffer.from(evidence.content).toString('base64'),
+      };
     });
   }
 
