@@ -14,7 +14,15 @@ export type Session = {
   email: string;
   timeZone: string;
 };
-export type Customer = { id: string; name: string; address: string };
+export type Customer = {
+  id: string;
+  name: string;
+  address: string;
+  district?: string;
+  ruc?: string;
+  latitude?: number;
+  longitude?: number;
+};
 export type Visit = {
   id: string;
   customerId: string;
@@ -58,6 +66,11 @@ export type Command =
       observations: string;
       attachment?: Attachment;
       audit?: ExhibitionAudit;
+    }
+  | {
+      type: "SCHEDULE_VISIT";
+      customerId: string;
+      scheduledAt: string;
     };
 
 export function dateKey(value: Date | string, timeZone: string) {
@@ -92,6 +105,10 @@ export function guard(
   if (command.type === "START_WORKDAY") {
     if (snapshot.workday.status !== "not-started")
       throw new Error("workday_already_started");
+    return;
+  }
+  if (command.type === "SCHEDULE_VISIT") {
+    if (!command.customerId) throw new Error("customer_not_found");
     return;
   }
   if (snapshot.workday.status !== "active")

@@ -19,7 +19,16 @@ export class InvitationsService {
   ) {}
 
   async issue(tx: Transaction, companyId: string, membershipId: string, createdByUserId: string) {
-    if (!this.config.MAIL_ENABLED) reject('mail_not_configured');
+    if (!this.config.MAIL_ENABLED) {
+      return {
+        id: membershipId,
+        companyId,
+        invitationStatus: 'pending',
+        deliveryStatus: 'skipped_mail_disabled',
+        expiresAt: new Date(Date.now() + 48 * 3600000).toISOString(),
+        purpose: 'activation',
+      };
+    }
     const member = await tx.membership.findFirst({
       where: { id: membershipId, companyId, active: true, company: { status: 'active' } },
       include: { user: true, company: { include: { domains: true } } },

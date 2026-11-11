@@ -3,6 +3,7 @@ import {
   validateAttachment,
   type Attachment,
   type Command,
+  type Customer,
   type Session,
   type Snapshot,
   type Visit,
@@ -351,14 +352,42 @@ export class FieldApi {
   }
   private async loadSnapshot(now: Date): Promise<Snapshot> {
     const current = session(await this.request("/me"));
-    const [agenda, rawDay] = await Promise.all([
+    const [agenda, rawDay, rawCustomers] = await Promise.all([
       this.agendaPages(),
       this.request("/me/workday"),
+      this.request("/me/customers?pageSize=100").catch(() => null),
     ]);
     const rawVisits = agenda.items;
     const day = rawDay === null ? undefined : record(rawDay);
     const visits = rawVisits.map(visit);
-    const customers = customersFor(visits);
+    let customers = customersFor(visits);
+    if (
+      rawCustomers &&
+      typeof rawCustomers === "object" &&
+      Array.isArray((rawCustomers as Record<string, unknown>).items)
+    ) {
+      try {
+        const list: Customer[] = (rawCustomers as { items: Record<string, unknown>[] }).items.map((c) => ({
+          id: str(c.id),
+          name: str(c.name),
+          address: str(c.address),
+          district: c.district ? str(c.district) : undefined,
+          ruc: c.ruc ? str(c.ruc) : undefined,
+          latitude: typeof c.latitude === "number" ? c.latitude : undefined,
+          longitude: typeof c.longitude === "number" ? c.longitude : undefined,
+        }));
+        const existingIds = new Set(list.map((c) => c.id));
+        for (const c of customers) {
+          if (!existingIds.has(c.id)) {
+            list.push(c);
+            existingIds.add(c.id);
+          }
+        }
+        customers = list;
+      } catch {
+        // Fallback to customersFor(visits)
+      }
+    }
     if (
       rawVisits.some((value) => {
         const v = record(value);
@@ -406,7 +435,9 @@ export class FieldApi {
         ? "/me/workdays/start"
         : command.type === "END_WORKDAY"
           ? "/me/workdays/end"
-          : `/me/visits/${encodeURIComponent(command.visitId)}/${command.type === "ARRIVE" ? "check-in" : "close"}`;
+          : command.type === "SCHEDULE_VISIT"
+            ? "/me/visits"
+            : `/me/visits/${encodeURIComponent(command.visitId)}/${command.type === "ARRIVE" ? "check-in" : "close"}`;
     const body =
       command.type === "FINISH_VISIT"
         ? {
@@ -415,7 +446,12 @@ export class FieldApi {
             ...(command.attachment ? { attachment: command.attachment } : {}),
             ...(command.audit ? { audit: validateAudit(command.audit) } : {}),
           }
-        : {};
+        : command.type === "SCHEDULE_VISIT"
+          ? {
+              customerId: command.customerId,
+              scheduledAt: command.scheduledAt,
+            }
+          : {};
     const identity = path + JSON.stringify(body);
     if (this.pending && this.pending.identity !== identity)
       throw new FieldError("uncertain_action_pending");
@@ -429,25 +465,30 @@ export class FieldApi {
     try {
       const response = record(await this.request(path, body, this.pending.key));
       str(response.id);
-      const isDay =
-        command.type === "START_WORKDAY" || command.type === "END_WORKDAY";
-      const expected =
-        command.type === "START_WORKDAY" || command.type === "ARRIVE"
-          ? "active"
-          : "completed";
-      if (response.status !== expected)
-        throw new FieldError("invalid_response");
-      if (isDay) {
-        timestamp(response.started_at);
-        if (command.type === "END_WORKDAY") timestamp(response.ended_at);
-      } else {
-        if (response.id !== command.visitId)
+      if (command.type === "SCHEDULE_VISIT") {
+        if (response.status !== "pending")
           throw new FieldError("invalid_response");
-        timestamp(response.arrived_at);
-        if (command.type === "FINISH_VISIT") {
-          timestamp(response.ended_at);
-          if (response.result !== command.result)
+      } else {
+        const isDay =
+          command.type === "START_WORKDAY" || command.type === "END_WORKDAY";
+        const expected =
+          command.type === "START_WORKDAY" || command.type === "ARRIVE"
+            ? "active"
+            : "completed";
+        if (response.status !== expected)
+          throw new FieldError("invalid_response");
+        if (isDay) {
+          timestamp(response.started_at);
+          if (command.type === "END_WORKDAY") timestamp(response.ended_at);
+        } else {
+          if (response.id !== command.visitId)
             throw new FieldError("invalid_response");
+          timestamp(response.arrived_at);
+          if (command.type === "FINISH_VISIT") {
+            timestamp(response.ended_at);
+            if (response.result !== command.result)
+              throw new FieldError("invalid_response");
+          }
         }
       }
       // Release on confirmed command success, even if the subsequent read fails.

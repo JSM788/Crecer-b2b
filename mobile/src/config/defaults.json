@@ -1,4 +1,5 @@
 {
-  "appName": "Aquamundo",
-  "environment": "demo"
+  "appName": "Salinas",
+  "environment": "production",
+  "apiUrl": "https://salinas-project-backend.onrender.com"
 }

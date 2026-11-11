@@ -17,6 +17,7 @@ import {
 } from "../modules/visits/domain/field";
 import { FieldApi, FieldError, type Invitation } from "./api";
 import { setTimeZone } from "./format";
+import { environment } from "../config/environment";
 
 type State = {
   authenticated: boolean;
@@ -70,7 +71,7 @@ export function FieldProvider({ children }: { children: React.ReactNode }) {
   const client = useCallback(() =>
     (api.current ??= new FieldApi({
       web: Platform.OS === "web",
-      apiUrl: process.env.EXPO_PUBLIC_API_URL,
+      apiUrl: environment.apiUrl,
       development: __DEV__,
       randomKey: randomUUID,
     })), []);

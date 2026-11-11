@@ -97,7 +97,7 @@ export type CompanyEditInput = z.infer<typeof editCompanySchema>;
 export const companyManagerSummarySchema = z.object({
   id: platformIdSchema,
   userId: platformIdSchema,
-  displayName: z.string(),
+  displayName: z.string().nullable(),
   email: z.email(),
   phone: z.string().nullable(),
 });

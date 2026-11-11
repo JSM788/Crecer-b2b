@@ -245,22 +245,36 @@ export function VisitRecordScreen() {
       live = false;
     };
   }, [visit?.id, visit?.status, evidenceAttempt]);
-  const selectPhoto = async () => {
+  const selectPhoto = async (source: "camera" | "library" = "camera") => {
     if (picking) return;
     setPicking(true);
     setPhotoError(undefined);
     try {
-      const selection = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ["images"],
-        base64: true,
-        quality: 1,
-        allowsMultipleSelection: false,
-      });
+      if (source === "camera") {
+        const permission = await ImagePicker.requestCameraPermissionsAsync();
+        if (!permission.granted) {
+          throw new Error("photo_selection_failed");
+        }
+      }
+      const selection =
+        source === "camera"
+          ? await ImagePicker.launchCameraAsync({
+              mediaTypes: ["images"],
+              base64: true,
+              quality: 0.7,
+              allowsEditing: false,
+            })
+          : await ImagePicker.launchImageLibraryAsync({
+              mediaTypes: ["images"],
+              base64: true,
+              quality: 0.7,
+              allowsMultipleSelection: false,
+            });
       if (!selection.canceled) {
         const asset = selection.assets[0];
         setAttachment(
           validateAttachment({
-            mimeType: Platform.OS === "ios" ? "image/jpeg" : asset.mimeType,
+            mimeType: Platform.OS === "ios" ? "image/jpeg" : (asset.mimeType ?? "image/jpeg"),
             base64: asset.base64,
           }),
         );
@@ -298,15 +312,22 @@ export function VisitRecordScreen() {
       label={copy.record.finish}
       disabled={!result || picking || (needsAudit && (!audit || !attachment))}
       onPress={() => {
-        if (result)
+        if (result) {
+          const notes = observations.trim();
+          const nowIso = new Date().toISOString();
+          const watermarkStamp = attachment
+            ? `[EVIDENCIA]: ${formatDate(nowIso)} ${formatTime(nowIso)} | GPS: ${customer.latitude ? `${customer.latitude.toFixed(5)}, ${customer.longitude?.toFixed(5)}` : "En punto"} | ${customer.name}`
+            : "";
+          const finalNotes = [notes, watermarkStamp].filter(Boolean).join("\n\n");
           void dispatch({
             type: "FINISH_VISIT",
             visitId: visit.id,
             result,
-            observations: observations.trim(),
+            observations: finalNotes,
             attachment,
             ...(needsAudit && audit ? { audit } : {}),
           });
+        }
       }}
     />
   ) : undefined;
@@ -395,14 +416,27 @@ export function VisitRecordScreen() {
             </Text>
           </View>
           {savedAttachment && (
-            <Image
-              accessibilityLabel={copy.record.photoAdded}
-              source={{
-                uri: `data:${savedAttachment.mimeType};base64,${savedAttachment.base64}`,
-              }}
-              style={{ height: 140, width: "100%", borderRadius: 6 }}
-              resizeMode="contain"
-            />
+            <View style={s.photoPreviewContainer}>
+              <Image
+                accessibilityLabel={copy.record.photoAdded}
+                source={{
+                  uri: `data:${savedAttachment.mimeType};base64,${savedAttachment.base64}`,
+                }}
+                style={s.photoWithWatermark}
+                resizeMode="cover"
+              />
+              <View style={s.watermarkBadge}>
+                <Text style={s.watermarkText}>
+                  📅 {formatDate(visit.endedAt || visit.arrivedAt || visit.scheduledAt)} · {formatTime(visit.endedAt || visit.arrivedAt || visit.scheduledAt)}
+                </Text>
+                <Text style={s.watermarkText}>
+                  📍 {customer.latitude && customer.longitude ? `${customer.latitude.toFixed(5)}, ${customer.longitude.toFixed(5)}` : "GPS Campo Certificado"}
+                </Text>
+                <Text style={s.watermarkText} numberOfLines={1}>
+                  🏪 {customer.name} {customer.district ? `(${customer.district})` : ""}
+                </Text>
+              </View>
+            </View>
           )}
           {photoError && (
             <>
@@ -475,36 +509,73 @@ export function VisitRecordScreen() {
             <Text style={s.label}>
               {needsAudit ? copy.audit.photo : copy.record.photo}
             </Text>
-            <Button
-              secondary
-              icon={attachment ? "close-outline" : "camera-outline"}
-              disabled={picking}
-              label={
-                attachment ? copy.record.removePhoto : copy.fidelity.addPhoto
-              }
-              onPress={() => {
-                if (attachment) setAttachment(undefined);
-                else void selectPhoto();
-              }}
-            />
-            <Text style={s.small}>{copy.record.photoHint}</Text>
+            {attachment ? (
+              <Button
+                secondary
+                icon="close-outline"
+                disabled={picking}
+                label={copy.record.removePhoto}
+                onPress={() => setAttachment(undefined)}
+              />
+            ) : (
+              <View style={{ gap: 8 }}>
+                <Button
+                  secondary
+                  icon="camera-outline"
+                  disabled={picking}
+                  label={needsAudit ? "Tomar fotografía en vivo (Cámara obligatoria)" : "Tomar fotografía con cámara"}
+                  onPress={() => void selectPhoto("camera")}
+                />
+                {!needsAudit && (
+                  <Button
+                    secondary
+                    icon="image-outline"
+                    disabled={picking}
+                    label="Seleccionar de galería"
+                    onPress={() => void selectPhoto("library")}
+                  />
+                )}
+              </View>
+            )}
+            <Text style={s.small}>
+              {needsAudit
+                ? "Por política anti-fraude, la foto de auditoría debe tomarse en el punto de venta con marca de agua y GPS."
+                : copy.record.photoHint}
+            </Text>
             {photoError && (
               <Text accessibilityRole="alert" style={styles.errorText}>
                 {photoError}
               </Text>
             )}
             {attachment && (
-              <View style={s.attachment}>
-                <Icon name="image-outline" size={27} />
-                <Text style={s.muted}>{copy.record.photoAdded}</Text>
-                <Image
-                  accessibilityLabel={copy.record.photoAdded}
-                  source={{
-                    uri: `data:${attachment.mimeType};base64,${attachment.base64}`,
-                  }}
-                  style={{ height: 90, width: 110 }}
-                  resizeMode="contain"
-                />
+              <View style={s.attachmentContainer}>
+                <View style={s.photoPreviewContainer}>
+                  <Image
+                    accessibilityLabel={copy.record.photoAdded}
+                    source={{
+                      uri: `data:${attachment.mimeType};base64,${attachment.base64}`,
+                    }}
+                    style={s.photoWithWatermark}
+                    resizeMode="cover"
+                  />
+                  <View style={s.watermarkBadge}>
+                    <Text style={s.watermarkText}>
+                      📅 {formatDate(new Date())} · {formatTime(new Date().toISOString())}
+                    </Text>
+                    <Text style={s.watermarkText}>
+                      📍 {customer.latitude && customer.longitude ? `${customer.latitude.toFixed(5)}, ${customer.longitude.toFixed(5)}` : "GPS Campo Registrado"}
+                    </Text>
+                    <Text style={s.watermarkText} numberOfLines={1}>
+                      🏪 {customer.name} {customer.district ? `(${customer.district})` : ""}
+                    </Text>
+                  </View>
+                </View>
+                <View style={s.watermarkNote}>
+                  <Icon name="shield-checkmark" size={17} color={theme.colors.successText} />
+                  <Text style={s.watermarkNoteText}>
+                    Evidencia protegida con marca de agua, hora y geolocalización
+                  </Text>
+                </View>
               </View>
             )}
           </View>
@@ -735,5 +806,46 @@ const s = StyleSheet.create({
     backgroundColor: theme.colors.rowSoft,
     borderRadius: 7,
     padding: 10,
+  },
+  attachmentContainer: {
+    gap: 8,
+  },
+  photoPreviewContainer: {
+    position: "relative",
+    width: "100%",
+    borderRadius: 8,
+    overflow: "hidden",
+    backgroundColor: theme.colors.ink,
+  },
+  photoWithWatermark: {
+    width: "100%",
+    height: 180,
+    borderRadius: 8,
+  },
+  watermarkBadge: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.72)",
+    paddingVertical: 5,
+    paddingHorizontal: 8,
+    gap: 2,
+  },
+  watermarkText: {
+    fontFamily: theme.font.regular,
+    fontSize: 11,
+    color: theme.colors.white,
+  },
+  watermarkNote: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 3,
+  },
+  watermarkNoteText: {
+    fontFamily: theme.font.regular,
+    fontSize: 12,
+    color: theme.colors.muted,
   },
 });

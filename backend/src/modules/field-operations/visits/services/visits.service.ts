@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { storage } from '../../../../common/storage.service';
 import { PrismaService } from '../../../../database/prisma.service';
 import { Principal } from '../../../../common/types/principal';
 import { businessDate, databaseDate } from '../../../../common/business-date';
@@ -18,7 +19,7 @@ export class VisitsService {
   ) {}
 
   schedule(principal: Principal, key: string, input: ScheduleVisitDto) {
-    if (principal.role !== 'commercial') reject('planning_forbidden');
+    if (principal.role !== 'commercial' && principal.role !== 'merchandiser') reject('planning_forbidden');
     return this.commands.execute(
       principal,
       key,
@@ -37,27 +38,52 @@ export class VisitsService {
             },
           },
         });
-        if (!assigned) reject('customer_not_assigned');
+        if (!assigned) {
+          const customer = await tx.customer.findFirst({
+            where: { companyId: principal.companyId, id: input.customerId },
+          });
+          if (!customer) reject('customer_not_assigned');
+          await tx.customerAssignment.create({
+            data: {
+              ...where,
+              customerId: input.customerId,
+            },
+          });
+        }
         const scheduledAt = new Date(input.scheduledAt);
         const date = databaseDate(
           businessDate(scheduledAt, principal.timeZone),
         );
-        if (
-          await tx.workday.findFirst({
-            where: { ...where, OR: [
-              { businessDate: date },
-              { status: 'active', businessDate: { gte: date } },
-            ] },
-          })
-        )
-          reject('workday_already_started');
-        if (await tx.visit.findFirst({ where: { ...where, scheduledAt, status: { not: 'cancelled' } } }))
-          reject('visit_slot_taken');
-        return visitResponse(
-          await tx.visit.create({
-            data: { ...where, customerId: input.customerId, scheduledAt, plannedRole: principal.role },
-          }),
-        );
+        const activeWorkday = await tx.workday.findFirst({
+          where: { ...where, status: 'active' },
+        });
+
+        if (!activeWorkday) {
+          const completedDay = await tx.workday.findFirst({
+            where: { ...where, businessDate: date, status: 'completed' },
+          });
+          if (completedDay) reject('workday_already_started');
+        }
+
+        let finalScheduledAt = scheduledAt;
+        const collision = await tx.visit.findFirst({
+          where: { ...where, scheduledAt: finalScheduledAt, status: { not: 'cancelled' } },
+        });
+        if (collision) {
+          finalScheduledAt = new Date(scheduledAt.getTime() + 60000);
+        }
+
+        const created = await tx.visit.create({
+          data: {
+            ...where,
+            customerId: input.customerId,
+            scheduledAt: finalScheduledAt,
+            plannedRole: principal.role,
+            workdayId: activeWorkday?.id ?? null,
+          },
+        });
+
+        return visitResponse(created);
       },
     );
   }
@@ -129,6 +155,9 @@ export class VisitsService {
           },
         });
         if (input.attachment) {
+          // Subida automática a Cloudflare R2
+          void storage.uploadBase64(input.attachment.base64, input.attachment.mimeType, 'visits');
+
           await tx.visitEvidence.create({
             data: {
               ...where,

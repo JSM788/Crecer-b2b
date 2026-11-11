@@ -50,7 +50,7 @@ export const copy = {
     addPhoto: "Agregar foto",
     optionalNote: "Solo si aporta al registro.",
   },
-  brand: "Aquamundo",
+  brand: "Salinas",
   demo: "DEMO VISUAL",
   role: "Comercial",
   merchandiser: "Mercaderista",
