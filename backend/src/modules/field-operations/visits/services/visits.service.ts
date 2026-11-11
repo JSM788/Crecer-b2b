@@ -100,6 +100,18 @@ export class VisitsService {
         where: { ...where, status: 'active' },
       });
       if (!day) reject('active_workday_required');
+
+      const nowLimaHour = Number(
+        new Intl.DateTimeFormat('en-CA', {
+          timeZone: principal.timeZone,
+          hour: '2-digit',
+          hour12: false,
+        }).format(new Date()),
+      );
+      if (nowLimaHour >= 19) {
+        reject('digital_disconnection_active');
+      }
+
       if (visit.status !== 'pending') reject('visit_not_pending');
       if (
         businessDate(visit.scheduledAt, principal.timeZone) >
@@ -155,15 +167,18 @@ export class VisitsService {
           },
         });
         if (input.attachment) {
-          // Subida a Cloudflare R2
+          // Subida EXCLUSIVA a Cloudflare R2 (cero Base64 en base de datos)
           const r2Url = await storage.uploadBase64(input.attachment.base64, input.attachment.mimeType, 'visits');
+          if (!r2Url) {
+            reject('storage_upload_failed');
+          }
 
           await tx.visitEvidence.create({
             data: {
               ...where,
               visitId: id,
               mimeType: input.attachment.mimeType,
-              content: r2Url ? Buffer.from(r2Url, 'utf-8') : Buffer.from(input.attachment.base64, 'base64'),
+              content: Buffer.from(r2Url, 'utf-8'),
             },
           });
         }
@@ -184,11 +199,10 @@ export class VisitsService {
     if (!visit) reject('visit_not_found');
     const evidence = visit.evidence[0];
     if (!evidence) return null;
-    const strContent = Buffer.from(evidence.content).toString('utf-8');
-    const isUrl = strContent.startsWith('http://') || strContent.startsWith('https://');
+    const url = Buffer.from(evidence.content).toString('utf-8');
     return {
       mimeType: evidence.mimeType,
-      base64: isUrl ? strContent : Buffer.from(evidence.content).toString('base64'),
+      base64: url,
     };
   }
 }

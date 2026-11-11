@@ -68,6 +68,8 @@ export const errorMessages = {
   another_visit_active: 'Another visit is active. Close it before checking in.',
   visit_not_active: 'Only an active visit can be closed.',
   visits_remaining: 'Complete the visits due before closing the workday.',
+  digital_disconnection_active: 'Field operations are closed after 19:00 hrs for digital disconnection.',
+  storage_upload_failed: 'Failed to upload photo evidence to Cloudflare R2.',
 } as const;
 
 export type ErrorCode = keyof typeof errorMessages;

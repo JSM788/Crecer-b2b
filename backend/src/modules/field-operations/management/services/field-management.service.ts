@@ -227,11 +227,10 @@ export class FieldManagementService {
       if (!visit) reject('visit_not_found');
       const evidence = visit.evidence[0];
       if (!evidence) return null;
-      const strContent = Buffer.from(evidence.content).toString('utf-8');
-      const isUrl = strContent.startsWith('http://') || strContent.startsWith('https://');
+      const url = Buffer.from(evidence.content).toString('utf-8');
       return {
         mimeType: evidence.mimeType,
-        base64: isUrl ? strContent : Buffer.from(evidence.content).toString('base64'),
+        base64: url,
       };
     });
   }

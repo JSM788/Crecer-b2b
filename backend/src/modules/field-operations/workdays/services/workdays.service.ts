@@ -18,16 +18,61 @@ export class WorkdaysService {
 
   async current(principal: Principal) {
     return this.prisma.transaction(async (tx) => {
-    const day = await tx.workday.findFirst({
-      where: {
-        companyId: principal.companyId,
-        membershipId: principal.membershipId,
-      },
-      orderBy: [{ startedAt: 'desc' }, { id: 'desc' }],
-    });
-    if (!day) return null;
-    const statistics = await workdayStatistics(tx, [day.id]);
-    return workdayResponse(day, statistics.get(day.id)!);
+      let day = await tx.workday.findFirst({
+        where: {
+          companyId: principal.companyId,
+          membershipId: principal.membershipId,
+        },
+        orderBy: [{ startedAt: 'desc' }, { id: 'desc' }],
+      });
+      if (!day) return null;
+
+      // AUTOCIERRE POR DESCONEXIÓN DIGITAL (19:00 hrs)
+      if (day.status === 'active') {
+        const now = new Date();
+        const nowLima = new Intl.DateTimeFormat('en-CA', {
+          timeZone: principal.timeZone,
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+        }).formatToParts(now);
+
+        const currentHour = Number(nowLima.find((p) => p.type === 'hour')?.value ?? '0');
+        const currentDate = `${nowLima.find((p) => p.type === 'year')?.value}-${nowLima.find((p) => p.type === 'month')?.value}-${nowLima.find((p) => p.type === 'day')?.value}`;
+        const dayBusinessDate = day.businessDate.toISOString().slice(0, 10);
+
+        const isPastDay = currentDate > dayBusinessDate;
+        const isPastCutoff = currentDate === dayBusinessDate && currentHour >= 19;
+
+        if (isPastDay || isPastCutoff) {
+          await tx.visit.updateMany({
+            where: {
+              companyId: principal.companyId,
+              membershipId: principal.membershipId,
+              workdayId: day.id,
+              status: { in: ['pending', 'active'] },
+            },
+            data: {
+              status: 'cancelled',
+              cancellationReason: 'Autocierre por Desconexión Digital (Límite 19:00 hrs)',
+            },
+          });
+
+          day = await tx.workday.update({
+            where: { id: day.id },
+            data: {
+              status: 'completed',
+              endedAt: now,
+            },
+          });
+        }
+      }
+
+      const statistics = await workdayStatistics(tx, [day.id]);
+      return workdayResponse(day, statistics.get(day.id)!);
     });
   }
 

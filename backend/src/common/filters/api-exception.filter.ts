@@ -63,6 +63,8 @@ const businessStatus: Record<ErrorCode, number> = {
   another_visit_active: 409,
   visit_not_active: 409,
   visits_remaining: 409,
+  digital_disconnection_active: 409,
+  storage_upload_failed: 502,
 };
 
 function postgresCode(error: unknown): string | undefined {

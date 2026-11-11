@@ -505,17 +505,7 @@ export function VisitRecordScreen() {
                 ].filter(Boolean);
 
                 const message = encodeURIComponent(lines.join("\n"));
-                const waUrl = `whatsapp://send?text=${message}`;
-                const webUrl = `https://wa.me/?text=${message}`;
-
-                Linking.canOpenURL(waUrl)
-                  .then((can) => {
-                    if (can) void Linking.openURL(waUrl);
-                    else void Linking.openURL(webUrl);
-                  })
-                  .catch(() => {
-                    void Linking.openURL(webUrl);
-                  });
+                void Linking.openURL(`https://wa.me/?text=${message}`);
               }}
             />
           </View>
