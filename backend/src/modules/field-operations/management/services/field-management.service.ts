@@ -15,7 +15,11 @@ import {
   fieldMemberSchema,
   SyncWeeklyRoutesDto,
 } from '../dto/field-management.dto';
-import { businessDateWindow } from './business-date-window';
+import {
+  businessDateWindow,
+  businessWeekKey,
+  businessWeekWindow,
+} from './business-date-window';
 import { Prisma } from '../../../../generated/prisma/client';
 import { pageResult } from '../../../../common/pagination';
 import { RescheduleVisit, CancelVisit } from '../dto/field-management.dto';
@@ -57,7 +61,7 @@ export class FieldManagementService {
     principal: Principal,
     query: (tx: Transaction) => Promise<T>,
   ) {
-    return this.prisma.transaction(async (tx) => {
+    return this.prisma.readTransaction(async (tx) => {
       await this.authorize(tx, principal);
       return query(tx);
     });
@@ -354,6 +358,20 @@ export class FieldManagementService {
     key: string,
     input: SyncWeeklyRoutesDto,
   ) {
+    // Reject repeating the same customer within the same calendar week payload.
+    const payloadByWeek = new Map<string, Set<string>>();
+    for (const day of input.days) {
+      const weekKey = businessWeekKey(day.date);
+      const seen = payloadByWeek.get(weekKey) ?? new Set<string>();
+      for (const customerId of day.customerIds) {
+        if (seen.has(customerId)) {
+          rejectField('customer_already_scheduled_this_week', ['days']);
+        }
+        seen.add(customerId);
+      }
+      payloadByWeek.set(weekKey, seen);
+    }
+
     return this.commands.execute(
       principal,
       key,
@@ -361,8 +379,9 @@ export class FieldManagementService {
       input,
       async (tx, context) => {
         const member = await this.target(tx, principal, input.membershipId);
-        let scheduledCount = 0;
+        const unlockedDays: SyncWeeklyRoutesDto['days'] = [];
 
+        // Phase 1: clear replaceable pending visits on unlocked days before checking week uniqueness.
         for (const day of input.days) {
           const dateObj = databaseDate(day.date);
           const workday = await tx.workday.findFirst({
@@ -379,8 +398,8 @@ export class FieldManagementService {
             continue;
           }
 
+          unlockedDays.push(day);
           const window = businessDateWindow(day.date, principal.timeZone);
-
           await tx.visit.deleteMany({
             where: {
               companyId: principal.companyId,
@@ -389,7 +408,36 @@ export class FieldManagementService {
               scheduledAt: { gte: window.gte, lt: window.lt },
             },
           });
+        }
 
+        // Phase 2: prevent scheduling customers already visited or scheduled elsewhere in the same week.
+        const insertingByWeek = new Map<string, { date: string; customerIds: string[] }>();
+        for (const day of unlockedDays) {
+          if (day.customerIds.length === 0) continue;
+          const weekKey = businessWeekKey(day.date);
+          const entry = insertingByWeek.get(weekKey) ?? { date: day.date, customerIds: [] };
+          entry.customerIds.push(...day.customerIds);
+          insertingByWeek.set(weekKey, entry);
+        }
+
+        for (const { date, customerIds } of insertingByWeek.values()) {
+          const existingInWeek = await tx.visit.findFirst({
+            where: {
+              companyId: principal.companyId,
+              membershipId: input.membershipId,
+              customerId: { in: customerIds },
+              status: { not: 'cancelled' },
+              scheduledAt: businessWeekWindow(date, principal.timeZone),
+            },
+          });
+          if (existingInWeek) {
+            rejectField('customer_already_scheduled_this_week', ['days']);
+          }
+        }
+
+        let scheduledCount = 0;
+
+        for (const day of unlockedDays) {
           for (let index = 0; index < day.customerIds.length; index++) {
             const customerId = day.customerIds[index];
             const customer = await tx.customer.findFirst({

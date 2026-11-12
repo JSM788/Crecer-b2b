@@ -112,7 +112,7 @@ export class PlatformService {
   }
 
   companies(principal: PlatformPrincipal, query: CompanyListQuery) {
-    return this.prisma.transaction(async (tx) => {
+    return this.prisma.readTransaction(async (tx) => {
       await this.access.requireOwner(tx, principal);
       const where: Prisma.CompanyWhereInput = {
         ...(query.status ? { status: query.status } : {}),
@@ -600,7 +600,7 @@ export class PlatformService {
   }
 
   auditLogs(principal: PlatformPrincipal, query: PlatformAuditListQuery) {
-    return this.prisma.transaction(async (tx) => {
+    return this.prisma.readTransaction(async (tx) => {
       await this.access.requireOwner(tx, principal);
       const where: Prisma.PlatformAuditEntryWhereInput = {
         ...(query.companyId ? { companyId: query.companyId } : {}),

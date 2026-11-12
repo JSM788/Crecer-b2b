@@ -5,7 +5,9 @@ import { Principal } from '../../../../common/types/principal';
 import { businessDate, databaseDate } from '../../../../common/business-date';
 import { reject } from '../../../../common/errors/application-error';
 import { FieldCommandsService } from '../../services/field-commands.service';
+import { evaluateCheckInGeofence } from './geofence';
 import {
+  CheckInDto,
   CloseVisitDto,
   ScheduleVisitDto,
   visitResponse,
@@ -89,46 +91,88 @@ export class VisitsService {
     );
   }
 
-  checkIn(principal: Principal, key: string, id: string) {
-    return this.commands.execute(principal, key, 'check_in', id, async (tx) => {
-      const where = {
-        companyId: principal.companyId,
-        membershipId: principal.membershipId,
-      };
-      const visit = await tx.visit.findFirst({ where: { ...where, id } });
-      if (!visit) reject('visit_not_found');
-      const day = await tx.workday.findFirst({
-        where: { ...where, status: 'active' },
-      });
-      if (!day) reject('active_workday_required');
+  checkIn(principal: Principal, key: string, id: string, input: CheckInDto = {}) {
+    return this.commands.execute(
+      principal,
+      key,
+      'check_in',
+      [id, input],
+      async (tx, context) => {
+        const where = {
+          companyId: principal.companyId,
+          membershipId: principal.membershipId,
+        };
+        const visit = await tx.visit.findFirst({
+          where: { ...where, id },
+          include: {
+            customer: { select: { latitude: true, longitude: true } },
+          },
+        });
+        if (!visit) reject('visit_not_found');
+        const day = await tx.workday.findFirst({
+          where: { ...where, status: 'active' },
+        });
+        if (!day) reject('active_workday_required');
 
-      const nowLimaHour = Number(
-        new Intl.DateTimeFormat('en-CA', {
-          timeZone: principal.timeZone,
-          hour: '2-digit',
-          hour12: false,
-        }).format(new Date()),
-      );
-      if (nowLimaHour >= 19) {
-        reject('digital_disconnection_active');
-      }
+        const nowLimaHour = Number(
+          new Intl.DateTimeFormat('en-CA', {
+            timeZone: principal.timeZone,
+            hour: '2-digit',
+            hour12: false,
+          }).format(new Date()),
+        );
+        if (nowLimaHour >= 19) {
+          reject('digital_disconnection_active');
+        }
 
-      if (visit.status !== 'pending') reject('visit_not_pending');
-      if (
-        businessDate(visit.scheduledAt, principal.timeZone) >
-        day.businessDate.toISOString().slice(0, 10)
-      )
-        reject('visit_scheduled_in_future');
-      if (await tx.visit.findFirst({ where: { ...where, status: 'active' } }))
-        reject('another_visit_active');
-      return visitResponse(
-        await tx.visit.update({
-          where: { id: visit.id },
-          data: { status: 'active', workdayId: day.id, arrivedAt: new Date(),
-            executionRole: day.role ?? principal.role, version: { increment: 1 } },
-        }),
-      );
-    });
+        if (visit.status !== 'pending') reject('visit_not_pending');
+        if (
+          businessDate(visit.scheduledAt, principal.timeZone) >
+          day.businessDate.toISOString().slice(0, 10)
+        )
+          reject('visit_scheduled_in_future');
+        if (await tx.visit.findFirst({ where: { ...where, status: 'active' } }))
+          reject('another_visit_active');
+
+        const deviceCoords =
+          input.latitude !== undefined && input.longitude !== undefined
+            ? { latitude: input.latitude, longitude: input.longitude }
+            : null;
+        const customerCoords =
+          visit.customer.latitude !== null && visit.customer.longitude !== null
+            ? {
+                latitude: visit.customer.latitude,
+                longitude: visit.customer.longitude,
+              }
+            : null;
+        const geofence = evaluateCheckInGeofence(deviceCoords, customerCoords);
+        if (!geofence.allowed) {
+          reject('outside_geofence');
+        }
+
+        context.recordDetails({
+          geofenceEnabled: !geofence.bypassed,
+          geofenceBypassed: geofence.bypassed,
+          geofenceRadiusMeters: geofence.radiusMeters,
+          distanceMeters: geofence.distanceMeters,
+          checkInLatitude: deviceCoords?.latitude ?? null,
+          checkInLongitude: deviceCoords?.longitude ?? null,
+        });
+
+        return visitResponse(
+          await tx.visit.update({
+            where: { id: visit.id },
+            data: {
+              status: 'active',
+              workdayId: day.id,
+              arrivedAt: new Date(),
+              executionRole: day.role ?? principal.role,
+              version: { increment: 1 },
+            },
+          }),
+        );
+      },
+    );
   }
 
   close(principal: Principal, key: string, id: string, input: CloseVisitDto) {

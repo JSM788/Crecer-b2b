@@ -29,13 +29,31 @@ import {
   platformAuditListQuerySchema,
   platformAuditEntryResponseSchema,
   PlatformAuditListQuery,
+  logSourceSchema,
+  platformLogEventsQuerySchema,
+  platformLogEventSchema,
+  platformLogUsersQuerySchema,
+  platformLogUserSummarySchema,
+  platformLogsSummaryResponseSchema,
+  platformLogFilesQuerySchema,
+  platformLogFileSchema,
+  platformLogFileContentSchema,
+  platformLogFileNameSchema,
+  PlatformLogEventsQuery,
+  PlatformLogUsersQuery,
+  PlatformLogFilesQuery,
 } from "../dto/platform.dto";
 import { PlatformService } from "../services/platform.service";
+import { PlatformLogsService } from "../services/platform-logs.service";
+import { z } from "zod";
 
 @Controller("v1/platform")
 @UseGuards(SessionGuard)
 export class PlatformController {
-  constructor(private readonly platform: PlatformService) {}
+  constructor(
+    private readonly platform: PlatformService,
+    private readonly logs: PlatformLogsService,
+  ) {}
 
   @Endpoint({
     method: "get",
@@ -205,5 +223,71 @@ export class PlatformController {
     @Query(new ZodValidationPipe(platformAuditListQuerySchema)) query: PlatformAuditListQuery,
   ) {
     return this.platform.auditLogs(principal, query);
+  }
+
+  @Endpoint({
+    method: "get",
+    path: "logs/summary",
+    query: z.object({ hours: z.coerce.number().int().min(1).max(720).optional() }).strict(),
+    output: platformLogsSummaryResponseSchema,
+  })
+  logsSummary(
+    @CurrentPrincipal() principal: PlatformPrincipal,
+    @Query(new ZodValidationPipe(z.object({ hours: z.coerce.number().int().min(1).max(720).optional() }).strict()))
+    query: { hours?: number },
+  ) {
+    return this.logs.getSummary(principal, query.hours);
+  }
+
+  @Endpoint({
+    method: "get",
+    path: "logs/users",
+    query: platformLogUsersQuerySchema,
+    output: z.array(platformLogUserSummarySchema),
+  })
+  logsUsers(
+    @CurrentPrincipal() principal: PlatformPrincipal,
+    @Query(new ZodValidationPipe(platformLogUsersQuerySchema)) query: PlatformLogUsersQuery,
+  ) {
+    return this.logs.getUsers(principal, query);
+  }
+
+  @Endpoint({
+    method: "get",
+    path: "logs/events",
+    query: platformLogEventsQuerySchema,
+    output: pageResultSchema(platformLogEventSchema),
+  })
+  logsEvents(
+    @CurrentPrincipal() principal: PlatformPrincipal,
+    @Query(new ZodValidationPipe(platformLogEventsQuerySchema)) query: PlatformLogEventsQuery,
+  ) {
+    return this.logs.getEvents(principal, query);
+  }
+
+  @Endpoint({
+    method: "get",
+    path: "logs/files",
+    query: platformLogFilesQuerySchema,
+    output: z.array(platformLogFileSchema),
+  })
+  logsFiles(
+    @CurrentPrincipal() principal: PlatformPrincipal,
+    @Query(new ZodValidationPipe(platformLogFilesQuerySchema)) query: PlatformLogFilesQuery,
+  ) {
+    return this.logs.getFiles(principal, query);
+  }
+
+  @Endpoint({
+    method: "get",
+    path: "logs/files/:source/:filename",
+    output: platformLogFileContentSchema,
+  })
+  logsFileContent(
+    @CurrentPrincipal() principal: PlatformPrincipal,
+    @Param("source", new ZodValidationPipe(logSourceSchema)) source: "backend" | "frontend" | "mobile",
+    @Param("filename", new ZodValidationPipe(platformLogFileNameSchema)) filename: string,
+  ) {
+    return this.logs.getFileContent(principal, source, filename);
   }
 }

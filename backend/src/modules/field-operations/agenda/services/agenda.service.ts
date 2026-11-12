@@ -12,7 +12,7 @@ import { databaseDate } from '../../../../common/business-date';
 export class AgendaService {
   constructor(private readonly prisma: PrismaService) {}
   async list(principal: Principal, filters: FieldFilters = fieldFiltersSchema.parse({})) {
-    return this.prisma.transaction(async (tx) => {
+    return this.prisma.readTransaction(async (tx) => {
       const where: Prisma.VisitWhereInput = {
         companyId: principal.companyId,
         membershipId: principal.membershipId,

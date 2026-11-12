@@ -29,7 +29,7 @@ export class TeamService {
   }
 
   list(principal: Principal, query: MemberListQuery) {
-    return this.prisma.transaction(async (tx) => {
+    return this.prisma.readTransaction(async (tx) => {
       await this.requireManager(tx, principal);
       const where: Prisma.MembershipWhereInput = {
         companyId: principal.companyId,
@@ -112,7 +112,7 @@ export class TeamService {
   }
 
   history(principal: Principal, membershipId: string, query: PaginationQuery) {
-    return this.prisma.transaction(async tx => {
+    return this.prisma.readTransaction(async tx => {
       await this.requireManager(tx, principal);
       const protectedMember = await tx.membership.findFirst({ where: { companyId: principal.companyId, id: membershipId, user: { isPlatformOwner: true } }, select: { id: true } });
       if (protectedMember) reject('team_forbidden');

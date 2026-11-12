@@ -48,6 +48,8 @@ export const errorMessages = {
   visit_slot_taken: 'A visit is already scheduled at this instant.',
   workday_date_completed:
     'Visits cannot be scheduled for a completed workday date.',
+  customer_already_scheduled_this_week:
+    'A customer cannot be scheduled more than once in the same week.',
   invalid_evidence:
     'Evidence must be a matching JPEG, PNG or WebP image of at most 1 MiB.',
   tenant_host_unknown: 'The request hostname is not assigned to a company.',
@@ -69,6 +71,7 @@ export const errorMessages = {
   visit_not_active: 'Only an active visit can be closed.',
   visits_remaining: 'Complete the visits due before closing the workday.',
   digital_disconnection_active: 'Field operations are closed after 19:00 hrs for digital disconnection.',
+  outside_geofence: 'Check-in must be performed within 50 meters of the customer location.',
   storage_upload_failed: 'Failed to upload photo evidence to Cloudflare R2.',
 } as const;
 

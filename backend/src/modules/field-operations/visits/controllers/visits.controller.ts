@@ -6,8 +6,9 @@ import { SessionGuard } from '../../../../common/guards/session.guard';
 import { ZodValidationPipe } from '../../../../common/http/zod-validation.pipe';
 import { Principal } from '../../../../common/types/principal';
 import { JsonResponse } from '../../../../common/types/http';
-import { emptyBodySchema } from '../../../identity/dto/login.dto';
 import {
+  CheckInDto,
+  checkInSchema,
   CloseVisitDto,
   closeSchema,
   evidenceSchema,
@@ -53,7 +54,7 @@ export class VisitsController {
   @Endpoint({
     method: 'post',
     path: ':id/check-in',
-    input: emptyBodySchema,
+    input: checkInSchema,
     output: visitResponseSchema,
     operationKey: true,
   })
@@ -61,9 +62,9 @@ export class VisitsController {
     @CurrentPrincipal() principal: Principal,
     @Param('id', new ZodValidationPipe(idSchema)) id: string,
     @OperationKey() key: string,
-    @Body(new ZodValidationPipe(emptyBodySchema)) _input: Record<string, never>,
+    @Body(new ZodValidationPipe(checkInSchema)) input: CheckInDto,
   ) {
-    return this.visits.checkIn(principal, key, id);
+    return this.visits.checkIn(principal, key, id, input);
   }
 
   @Endpoint({

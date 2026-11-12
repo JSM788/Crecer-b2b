@@ -59,6 +59,20 @@ export class PrismaService extends PrismaClient implements OnModuleDestroy {
     throw new Error('Transaction attempt policy is invalid');
   }
 
+  /**
+   * Read-only transaction using ReadCommitted isolation.
+   * Avoids Serializable lock/SSI overhead and retry loops on GET queries.
+   */
+  readTransaction<T>(
+    run: (transaction: Transaction) => Promise<T>,
+  ): Promise<T> {
+    return this.$transaction(run, {
+      isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
+      maxWait: this.policy.DB_STATEMENT_TIMEOUT_MS,
+      timeout: this.policy.DB_STATEMENT_TIMEOUT_MS,
+    });
+  }
+
   async onModuleDestroy() {
     await this.$disconnect();
   }

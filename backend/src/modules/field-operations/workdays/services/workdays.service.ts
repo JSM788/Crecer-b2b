@@ -77,7 +77,7 @@ export class WorkdaysService {
   }
 
   async list(principal: Principal, filters: PaginationQuery = paginationQuerySchema.parse({})) {
-    return this.prisma.transaction(async (tx) => {
+    return this.prisma.readTransaction(async (tx) => {
       const where = {
         companyId: principal.companyId,
         membershipId: principal.membershipId,
@@ -113,10 +113,10 @@ export class WorkdaysService {
         const day = await tx.workday.create({
           data: { ...where, businessDate: date, role: principal.role },
         });
-        // Freeze all due planning into this workday before any visit is checked in.
+        // Freeze today's planned visits into this workday before any visit is checked in.
         const window = businessDateWindow(date.toISOString().slice(0, 10), principal.timeZone);
         await tx.visit.updateMany({ where: {
-          ...where, status: 'pending', scheduledAt: { lt: window.lt },
+          ...where, status: 'pending', scheduledAt: { gte: window.gte, lt: window.lt },
         }, data: { workdayId: day.id } });
         const statistics = await workdayStatistics(tx, [day.id]);
         return workdayResponse(day, statistics.get(day.id)!);
@@ -142,7 +142,7 @@ export class WorkdaysService {
         const date = day.businessDate.toISOString().slice(0, 10);
         const window = businessDateWindow(date, principal.timeZone);
         const pending = await tx.visit.findMany({
-          where: { ...where, status: { in: ['pending', 'active'] }, scheduledAt: { lt: window.lt } },
+          where: { ...where, status: { in: ['pending', 'active'] }, scheduledAt: { gte: window.gte, lt: window.lt } },
           select: { id: true },
         });
         if (pending.length > 0) {

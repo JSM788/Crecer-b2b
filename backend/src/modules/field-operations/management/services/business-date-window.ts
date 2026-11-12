@@ -21,3 +21,23 @@ export function businessDateWindow(date: string, timeZone: string) {
     lt: boundary(following.toISOString().slice(0, 10)),
   };
 }
+
+/** ISO Monday calendar date (YYYY-MM-DD) identifying the week of a calendar date. */
+export function businessWeekKey(date: string): string {
+  const anchor = new Date(`${date}T00:00:00Z`);
+  const day = anchor.getUTCDay();
+  const diffToMonday = day === 0 ? -6 : 1 - day;
+  anchor.setUTCDate(anchor.getUTCDate() + diffToMonday);
+  return anchor.toISOString().slice(0, 10);
+}
+
+/** Half-open UTC range covering Monday 00:00 through next Monday 00:00 in timeZone. */
+export function businessWeekWindow(date: string, timeZone: string) {
+  const monday = businessWeekKey(date);
+  const sunday = new Date(`${monday}T00:00:00Z`);
+  sunday.setUTCDate(sunday.getUTCDate() + 6);
+  return {
+    gte: businessDateWindow(monday, timeZone).gte,
+    lt: businessDateWindow(sunday.toISOString().slice(0, 10), timeZone).lt,
+  };
+}

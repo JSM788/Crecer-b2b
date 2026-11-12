@@ -49,7 +49,7 @@ export class CustomersService {
   constructor(private readonly prisma: PrismaService) {}
 
   assigned(principal: Principal, filters: CustomerFilters = customerFiltersSchema.parse({})) {
-    return this.prisma.transaction(async (tx) => {
+    return this.prisma.readTransaction(async (tx) => {
       const where: Prisma.CustomerWhereInput = {
         AND: [this.customerWhere(principal, filters), { assignments: {
           some: {
@@ -61,7 +61,7 @@ export class CustomersService {
       const total = await tx.customer.count({ where });
       const items = await tx.customer.findMany({
       where,
-      select: { id: true, name: true, address: true },
+      select: { id: true, name: true, address: true, latitude: true, longitude: true },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       skip: (filters.page - 1) * filters.pageSize,
       take: filters.pageSize,
@@ -122,7 +122,7 @@ export class CustomersService {
 
   async list(principal: Principal, filters: CustomerFilters = customerFiltersSchema.parse({})) {
     this.authorize(principal);
-    return this.prisma.transaction(async (tx) => {
+    return this.prisma.readTransaction(async (tx) => {
     const where = this.customerWhere(principal, filters);
     const total = await tx.customer.count({ where });
     const customers = await tx.customer.findMany({
@@ -138,7 +138,7 @@ export class CustomersService {
 
   async assignees(principal: Principal, filters: CustomerFilters = customerFiltersSchema.parse({})) {
     this.authorize(principal);
-    return this.prisma.transaction(async (tx) => {
+    return this.prisma.readTransaction(async (tx) => {
       const where: Prisma.MembershipWhereInput = {
         companyId: principal.companyId,
         active: true,

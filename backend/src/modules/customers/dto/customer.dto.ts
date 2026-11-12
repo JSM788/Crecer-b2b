@@ -60,6 +60,8 @@ export const customerResponseSchema = z.object({
   id: z.uuid(),
   name: z.string(),
   address: z.string(),
+  latitude: z.number().nullable().optional(),
+  longitude: z.number().nullable().optional(),
 });
 export const assigneeResponseSchema = z.object({
   displayName: z.string().nullable().optional(),

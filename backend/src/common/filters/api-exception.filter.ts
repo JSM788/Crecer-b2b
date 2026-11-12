@@ -48,6 +48,7 @@ const businessStatus: Record<ErrorCode, number> = {
   customer_not_assigned: 404,
   visit_slot_taken: 409,
   workday_date_completed: 409,
+  customer_already_scheduled_this_week: 409,
   invalid_evidence: 400,
   tenant_host_unknown: 400,
   invalid_credentials: 401,
@@ -64,6 +65,7 @@ const businessStatus: Record<ErrorCode, number> = {
   visit_not_active: 409,
   visits_remaining: 409,
   digital_disconnection_active: 409,
+  outside_geofence: 409,
   storage_upload_failed: 502,
 };
 
